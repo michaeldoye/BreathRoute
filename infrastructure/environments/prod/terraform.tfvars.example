@@ -1,0 +1,5 @@
+# Copy this file to terraform.tfvars and fill in your values
+# DO NOT commit terraform.tfvars to git
+
+project_id = "breatheroute-prod"
+region     = "europe-west4"

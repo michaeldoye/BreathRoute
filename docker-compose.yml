@@ -1,0 +1,83 @@
+version: "3.8"
+
+services:
+  # PostgreSQL with PostGIS extension
+  postgres:
+    image: postgis/postgis:15-3.4-alpine
+    container_name: breatheroute-postgres
+    environment:
+      POSTGRES_USER: breatheroute
+      POSTGRES_PASSWORD: localdev
+      POSTGRES_DB: breatheroute
+    ports:
+      - "5432:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+      - ./scripts/init-db.sql:/docker-entrypoint-initdb.d/init-db.sql:ro
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U breatheroute -d breatheroute"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+
+  # Redis cache
+  redis:
+    image: redis:7.2-alpine
+    container_name: breatheroute-redis
+    command: redis-server --appendonly yes
+    ports:
+      - "6379:6379"
+    volumes:
+      - redis_data:/data
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+
+  # Redis Commander (optional - web UI for Redis)
+  redis-commander:
+    image: rediscommander/redis-commander:latest
+    container_name: breatheroute-redis-ui
+    environment:
+      REDIS_HOSTS: local:redis:6379
+    ports:
+      - "8081:8081"
+    depends_on:
+      redis:
+        condition: service_healthy
+    profiles:
+      - tools
+
+  # pgAdmin (optional - web UI for PostgreSQL)
+  pgadmin:
+    image: dpage/pgadmin4:latest
+    container_name: breatheroute-pgadmin
+    environment:
+      PGADMIN_DEFAULT_EMAIL: admin@breatheroute.local
+      PGADMIN_DEFAULT_PASSWORD: localdev
+      PGADMIN_CONFIG_SERVER_MODE: "False"
+    ports:
+      - "8082:80"
+    volumes:
+      - pgadmin_data:/var/lib/pgadmin
+    depends_on:
+      postgres:
+        condition: service_healthy
+    profiles:
+      - tools
+
+  # MailHog (optional - email testing)
+  mailhog:
+    image: mailhog/mailhog:latest
+    container_name: breatheroute-mailhog
+    ports:
+      - "1025:1025"  # SMTP
+      - "8025:8025"  # Web UI
+    profiles:
+      - tools
+
+volumes:
+  postgres_data:
+  redis_data:
+  pgadmin_data:

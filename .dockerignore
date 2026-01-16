@@ -1,0 +1,42 @@
+# Git
+.git
+.gitignore
+
+# IDE
+.idea
+.vscode
+*.swp
+*.swo
+
+# Documentation
+*.md
+!README.md
+
+# Infrastructure (not needed in container)
+infrastructure/
+AIContext/
+
+# GitHub Actions
+.github/
+
+# Local development
+.env
+.env.*
+*.local
+
+# Test artifacts
+coverage.out
+*.test
+*.prof
+
+# Build artifacts
+bin/
+dist/
+
+# macOS
+.DS_Store
+
+# Temporary files
+tmp/
+*.tmp
+*.log

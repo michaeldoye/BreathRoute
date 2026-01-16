@@ -1,0 +1,321 @@
+name: iOS Build & Release
+
+on:
+  push:
+    branches:
+      - main
+      - develop
+    paths:
+      - 'ios/**'
+      - '.github/workflows/ios.yml'
+  pull_request:
+    branches:
+      - main
+      - develop
+    paths:
+      - 'ios/**'
+      - '.github/workflows/ios.yml'
+  workflow_dispatch:
+    inputs:
+      destination:
+        description: 'Release destination'
+        required: true
+        default: 'testflight'
+        type: choice
+        options:
+          - testflight
+          - app-store
+
+env:
+  XCODE_VERSION: '15.4'
+  IOS_SCHEME: 'BreatheRoute'
+  IOS_PROJECT_PATH: 'ios'
+
+jobs:
+  determine-config:
+    runs-on: ubuntu-latest
+    outputs:
+      should_release: ${{ steps.config.outputs.should_release }}
+      destination: ${{ steps.config.outputs.destination }}
+      environment: ${{ steps.config.outputs.environment }}
+    steps:
+      - name: Determine configuration
+        id: config
+        run: |
+          if [ "${{ github.event_name }}" == "workflow_dispatch" ]; then
+            echo "should_release=true" >> $GITHUB_OUTPUT
+            echo "destination=${{ inputs.destination }}" >> $GITHUB_OUTPUT
+            if [ "${{ inputs.destination }}" == "app-store" ]; then
+              echo "environment=prod" >> $GITHUB_OUTPUT
+            else
+              echo "environment=staging" >> $GITHUB_OUTPUT
+            fi
+          elif [ "${{ github.event_name }}" == "push" ] && [ "${{ github.ref }}" == "refs/heads/main" ]; then
+            echo "should_release=true" >> $GITHUB_OUTPUT
+            echo "destination=testflight" >> $GITHUB_OUTPUT
+            echo "environment=prod" >> $GITHUB_OUTPUT
+          elif [ "${{ github.event_name }}" == "push" ] && [ "${{ github.ref }}" == "refs/heads/develop" ]; then
+            echo "should_release=true" >> $GITHUB_OUTPUT
+            echo "destination=testflight" >> $GITHUB_OUTPUT
+            echo "environment=staging" >> $GITHUB_OUTPUT
+          else
+            echo "should_release=false" >> $GITHUB_OUTPUT
+            echo "destination=none" >> $GITHUB_OUTPUT
+            echo "environment=staging" >> $GITHUB_OUTPUT
+          fi
+
+  test:
+    runs-on: macos-14
+    defaults:
+      run:
+        working-directory: ${{ env.IOS_PROJECT_PATH }}
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Select Xcode version
+        run: sudo xcode-select -s /Applications/Xcode_${{ env.XCODE_VERSION }}.app
+
+      - name: Cache Swift packages
+        uses: actions/cache@v4
+        with:
+          path: |
+            ~/Library/Caches/org.swift.swiftpm
+            ${{ env.IOS_PROJECT_PATH }}/.build
+          key: ${{ runner.os }}-spm-${{ hashFiles('**/Package.resolved') }}
+          restore-keys: |
+            ${{ runner.os }}-spm-
+
+      - name: Resolve Swift packages
+        run: xcodebuild -resolvePackageDependencies -scheme ${{ env.IOS_SCHEME }}
+
+      - name: Run tests
+        run: |
+          xcodebuild test \
+            -scheme ${{ env.IOS_SCHEME }} \
+            -destination 'platform=iOS Simulator,name=iPhone 15,OS=latest' \
+            -resultBundlePath TestResults.xcresult \
+            CODE_SIGNING_ALLOWED=NO \
+            | xcpretty --color
+
+      - name: Upload test results
+        uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: test-results
+          path: ${{ env.IOS_PROJECT_PATH }}/TestResults.xcresult
+
+  build:
+    needs: [determine-config, test]
+    runs-on: macos-14
+    if: needs.determine-config.outputs.should_release == 'true'
+    environment: ${{ needs.determine-config.outputs.environment }}
+
+    defaults:
+      run:
+        working-directory: ${{ env.IOS_PROJECT_PATH }}
+
+    outputs:
+      build_number: ${{ steps.build-number.outputs.build_number }}
+      version: ${{ steps.version.outputs.version }}
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Select Xcode version
+        run: sudo xcode-select -s /Applications/Xcode_${{ env.XCODE_VERSION }}.app
+
+      - name: Generate build number
+        id: build-number
+        run: |
+          BUILD_NUMBER=$(date +%Y%m%d%H%M)
+          echo "build_number=$BUILD_NUMBER" >> $GITHUB_OUTPUT
+
+      - name: Get version
+        id: version
+        run: |
+          VERSION=$(grep -m1 MARKETING_VERSION *.xcodeproj/project.pbxproj | sed 's/.*= //' | sed 's/;.*//' | tr -d ' "')
+          echo "version=$VERSION" >> $GITHUB_OUTPUT
+
+      - name: Install Apple certificate and provisioning profile
+        env:
+          BUILD_CERTIFICATE_BASE64: ${{ secrets.APPLE_BUILD_CERTIFICATE_BASE64 }}
+          P12_PASSWORD: ${{ secrets.APPLE_P12_PASSWORD }}
+          PROVISIONING_PROFILE_BASE64: ${{ secrets.APPLE_PROVISIONING_PROFILE_BASE64 }}
+          KEYCHAIN_PASSWORD: ${{ secrets.APPLE_KEYCHAIN_PASSWORD }}
+        run: |
+          # Create variables
+          CERTIFICATE_PATH=$RUNNER_TEMP/build_certificate.p12
+          PP_PATH=$RUNNER_TEMP/build_pp.mobileprovision
+          KEYCHAIN_PATH=$RUNNER_TEMP/app-signing.keychain-db
+
+          # Import certificate and provisioning profile from secrets
+          echo -n "$BUILD_CERTIFICATE_BASE64" | base64 --decode -o $CERTIFICATE_PATH
+          echo -n "$PROVISIONING_PROFILE_BASE64" | base64 --decode -o $PP_PATH
+
+          # Create temporary keychain
+          security create-keychain -p "$KEYCHAIN_PASSWORD" $KEYCHAIN_PATH
+          security set-keychain-settings -lut 21600 $KEYCHAIN_PATH
+          security unlock-keychain -p "$KEYCHAIN_PASSWORD" $KEYCHAIN_PATH
+
+          # Import certificate to keychain
+          security import $CERTIFICATE_PATH -P "$P12_PASSWORD" -A -t cert -f pkcs12 -k $KEYCHAIN_PATH
+          security set-key-partition-list -S apple-tool:,apple: -k "$KEYCHAIN_PASSWORD" $KEYCHAIN_PATH
+          security list-keychain -d user -s $KEYCHAIN_PATH
+
+          # Apply provisioning profile
+          mkdir -p ~/Library/MobileDevice/Provisioning\ Profiles
+          cp $PP_PATH ~/Library/MobileDevice/Provisioning\ Profiles
+
+      - name: Update build number
+        run: |
+          agvtool new-version -all ${{ steps.build-number.outputs.build_number }}
+
+      - name: Build archive
+        run: |
+          xcodebuild archive \
+            -scheme ${{ env.IOS_SCHEME }} \
+            -configuration Release \
+            -archivePath $RUNNER_TEMP/BreatheRoute.xcarchive \
+            -destination 'generic/platform=iOS' \
+            DEVELOPMENT_TEAM=${{ secrets.APPLE_TEAM_ID }} \
+            CODE_SIGN_STYLE=Manual \
+            CODE_SIGN_IDENTITY="${{ secrets.APPLE_CODE_SIGN_IDENTITY }}" \
+            PROVISIONING_PROFILE_SPECIFIER="${{ secrets.APPLE_PROVISIONING_PROFILE_NAME }}"
+
+      - name: Create ExportOptions.plist
+        env:
+          DESTINATION: ${{ needs.determine-config.outputs.destination }}
+        run: |
+          if [ "$DESTINATION" == "app-store" ]; then
+            METHOD="app-store"
+          else
+            METHOD="app-store"  # TestFlight also uses app-store method
+          fi
+
+          cat > $RUNNER_TEMP/ExportOptions.plist << EOF
+          <?xml version="1.0" encoding="UTF-8"?>
+          <!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+          <plist version="1.0">
+          <dict>
+              <key>method</key>
+              <string>${METHOD}</string>
+              <key>teamID</key>
+              <string>${{ secrets.APPLE_TEAM_ID }}</string>
+              <key>uploadSymbols</key>
+              <true/>
+              <key>compileBitcode</key>
+              <false/>
+          </dict>
+          </plist>
+          EOF
+
+      - name: Export IPA
+        run: |
+          xcodebuild -exportArchive \
+            -archivePath $RUNNER_TEMP/BreatheRoute.xcarchive \
+            -exportPath $RUNNER_TEMP/export \
+            -exportOptionsPlist $RUNNER_TEMP/ExportOptions.plist
+
+      - name: Upload IPA artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: BreatheRoute-${{ steps.version.outputs.version }}-${{ steps.build-number.outputs.build_number }}
+          path: ${{ runner.temp }}/export/*.ipa
+
+      - name: Upload dSYM artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: BreatheRoute-dSYM-${{ steps.version.outputs.version }}-${{ steps.build-number.outputs.build_number }}
+          path: ${{ runner.temp }}/BreatheRoute.xcarchive/dSYMs
+
+  upload-testflight:
+    needs: [determine-config, build]
+    runs-on: macos-14
+    if: needs.determine-config.outputs.destination == 'testflight'
+    environment: ${{ needs.determine-config.outputs.environment }}
+
+    steps:
+      - name: Download IPA
+        uses: actions/download-artifact@v4
+        with:
+          name: BreatheRoute-${{ needs.build.outputs.version }}-${{ needs.build.outputs.build_number }}
+          path: ${{ runner.temp }}/ipa
+
+      - name: Upload to TestFlight
+        env:
+          APP_STORE_CONNECT_API_KEY_ID: ${{ secrets.APP_STORE_CONNECT_API_KEY_ID }}
+          APP_STORE_CONNECT_API_ISSUER_ID: ${{ secrets.APP_STORE_CONNECT_API_ISSUER_ID }}
+          APP_STORE_CONNECT_API_KEY_BASE64: ${{ secrets.APP_STORE_CONNECT_API_KEY_BASE64 }}
+        run: |
+          # Create API key file
+          mkdir -p ~/.appstoreconnect/private_keys
+          echo -n "$APP_STORE_CONNECT_API_KEY_BASE64" | base64 --decode > ~/.appstoreconnect/private_keys/AuthKey_${APP_STORE_CONNECT_API_KEY_ID}.p8
+
+          # Upload to TestFlight
+          xcrun altool --upload-app \
+            --type ios \
+            --file "${{ runner.temp }}/ipa/*.ipa" \
+            --apiKey "$APP_STORE_CONNECT_API_KEY_ID" \
+            --apiIssuer "$APP_STORE_CONNECT_API_ISSUER_ID"
+
+      - name: Post upload summary
+        run: |
+          echo "## iOS Build Uploaded to TestFlight" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "| Property | Value |" >> $GITHUB_STEP_SUMMARY
+          echo "|----------|-------|" >> $GITHUB_STEP_SUMMARY
+          echo "| Version | ${{ needs.build.outputs.version }} |" >> $GITHUB_STEP_SUMMARY
+          echo "| Build | ${{ needs.build.outputs.build_number }} |" >> $GITHUB_STEP_SUMMARY
+          echo "| Environment | ${{ needs.determine-config.outputs.environment }} |" >> $GITHUB_STEP_SUMMARY
+
+  upload-app-store:
+    needs: [determine-config, build]
+    runs-on: macos-14
+    if: needs.determine-config.outputs.destination == 'app-store'
+    environment: prod
+
+    steps:
+      - name: Download IPA
+        uses: actions/download-artifact@v4
+        with:
+          name: BreatheRoute-${{ needs.build.outputs.version }}-${{ needs.build.outputs.build_number }}
+          path: ${{ runner.temp }}/ipa
+
+      - name: Upload to App Store Connect
+        env:
+          APP_STORE_CONNECT_API_KEY_ID: ${{ secrets.APP_STORE_CONNECT_API_KEY_ID }}
+          APP_STORE_CONNECT_API_ISSUER_ID: ${{ secrets.APP_STORE_CONNECT_API_ISSUER_ID }}
+          APP_STORE_CONNECT_API_KEY_BASE64: ${{ secrets.APP_STORE_CONNECT_API_KEY_BASE64 }}
+        run: |
+          # Create API key file
+          mkdir -p ~/.appstoreconnect/private_keys
+          echo -n "$APP_STORE_CONNECT_API_KEY_BASE64" | base64 --decode > ~/.appstoreconnect/private_keys/AuthKey_${APP_STORE_CONNECT_API_KEY_ID}.p8
+
+          # Upload to App Store
+          xcrun altool --upload-app \
+            --type ios \
+            --file "${{ runner.temp }}/ipa/*.ipa" \
+            --apiKey "$APP_STORE_CONNECT_API_KEY_ID" \
+            --apiIssuer "$APP_STORE_CONNECT_API_ISSUER_ID"
+
+      - name: Post upload summary
+        run: |
+          echo "## iOS Build Uploaded to App Store Connect" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "| Property | Value |" >> $GITHUB_STEP_SUMMARY
+          echo "|----------|-------|" >> $GITHUB_STEP_SUMMARY
+          echo "| Version | ${{ needs.build.outputs.version }} |" >> $GITHUB_STEP_SUMMARY
+          echo "| Build | ${{ needs.build.outputs.build_number }} |" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "**Note:** Build is now available in App Store Connect for review submission." >> $GITHUB_STEP_SUMMARY
+
+  cleanup:
+    needs: [build, upload-testflight, upload-app-store]
+    runs-on: macos-14
+    if: always()
+    steps:
+      - name: Clean up keychain
+        run: |
+          security delete-keychain $RUNNER_TEMP/app-signing.keychain-db 2>/dev/null || true
