@@ -79,7 +79,7 @@ jobs:
 
       - name: Terraform Plan
         id: plan
-        run: terraform plan -no-color -out=tfplan -lock=false
+        run: terraform plan -no-color -out=tfplan -lock=false -var="project_id=breatheroute" -var="region=europe-west4"
         continue-on-error: true
 
       - name: Post Plan to PR
@@ -128,4 +128,4 @@ jobs:
 
       - name: Terraform Apply
         if: steps.should-apply.outputs.apply == 'true'
-        run: terraform apply -auto-approve tfplan
+        run: terraform apply -auto-approve -lock=false tfplan
