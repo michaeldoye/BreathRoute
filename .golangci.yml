@@ -91,8 +91,10 @@ linters-settings:
       - performance
       - style
     disabled-checks:
-      - whyNoLint  # Covered by nolintlint
-      - hugeParam  # Too noisy for request/response structs
+      - whyNoLint        # Covered by nolintlint
+      - hugeParam        # Too noisy for request/response structs
+      - commentedOutCode # TODO comments are expected in development
+      - unnamedResult    # Too pedantic for simple functions
 
   gofmt:
     simplify: true
@@ -163,6 +165,11 @@ issues:
         - errcheck
         - gosec
         - unparam
+
+    # Exclude contextcheck from recovery middleware (panic handler doesn't pass context)
+    - path: middleware/recovery\.go
+      linters:
+        - contextcheck
 
     # Exclude some linters from running on main.go
     - path: cmd/.+/main\.go

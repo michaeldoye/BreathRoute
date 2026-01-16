@@ -20,7 +20,7 @@ func TestRequestID_GeneratesNewID(t *testing.T) {
 		w.WriteHeader(http.StatusOK)
 	}))
 
-	req := httptest.NewRequest(http.MethodGet, "/test", nil)
+	req := httptest.NewRequest(http.MethodGet, "/test", http.NoBody)
 	w := httptest.NewRecorder()
 
 	handler.ServeHTTP(w, req)
@@ -39,7 +39,7 @@ func TestRequestID_PreservesExistingID(t *testing.T) {
 		w.WriteHeader(http.StatusOK)
 	}))
 
-	req := httptest.NewRequest(http.MethodGet, "/test", nil)
+	req := httptest.NewRequest(http.MethodGet, "/test", http.NoBody)
 	req.Header.Set("X-Request-Id", "existing_request_id")
 	w := httptest.NewRecorder()
 
@@ -49,7 +49,7 @@ func TestRequestID_PreservesExistingID(t *testing.T) {
 }
 
 func TestGetRequestID_ReturnsEmptyStringForMissingContext(t *testing.T) {
-	req := httptest.NewRequest(http.MethodGet, "/test", nil)
+	req := httptest.NewRequest(http.MethodGet, "/test", http.NoBody)
 	id := middleware.GetRequestID(req.Context())
 	assert.Empty(t, id)
 }
@@ -62,7 +62,7 @@ func TestRequestID_UniqueIDs(t *testing.T) {
 	ids := make(map[string]bool)
 
 	for i := 0; i < 100; i++ {
-		req := httptest.NewRequest(http.MethodGet, "/test", nil)
+		req := httptest.NewRequest(http.MethodGet, "/test", http.NoBody)
 		w := httptest.NewRecorder()
 
 		handler.ServeHTTP(w, req)

@@ -44,7 +44,7 @@ func TestTracing_CreatesSpan(t *testing.T) {
 		w.WriteHeader(http.StatusOK)
 	}))
 
-	req := httptest.NewRequest(http.MethodGet, "/test/path", nil)
+	req := httptest.NewRequest(http.MethodGet, "/test/path", http.NoBody)
 	w := httptest.NewRecorder()
 
 	handler.ServeHTTP(w, req)
@@ -62,7 +62,7 @@ func TestTracing_PropagatesContext(t *testing.T) {
 		w.WriteHeader(http.StatusOK)
 	}))
 
-	req := httptest.NewRequest(http.MethodGet, "/test", nil)
+	req := httptest.NewRequest(http.MethodGet, "/test", http.NoBody)
 	// Set trace context header (W3C Trace Context format)
 	req.Header.Set("traceparent", "00-0af7651916cd43dd8448eb211c80319c-b7ad6b7169203331-01")
 	w := httptest.NewRecorder()
@@ -83,7 +83,7 @@ func TestTracing_RecordsStatusCode(t *testing.T) {
 		w.WriteHeader(http.StatusNotFound)
 	}))
 
-	req := httptest.NewRequest(http.MethodGet, "/test", nil)
+	req := httptest.NewRequest(http.MethodGet, "/test", http.NoBody)
 	w := httptest.NewRecorder()
 
 	handler.ServeHTTP(w, req)
@@ -112,7 +112,7 @@ func TestTracing_MarksErrorOnServerError(t *testing.T) {
 		w.WriteHeader(http.StatusInternalServerError)
 	}))
 
-	req := httptest.NewRequest(http.MethodGet, "/test", nil)
+	req := httptest.NewRequest(http.MethodGet, "/test", http.NoBody)
 	w := httptest.NewRecorder()
 
 	handler.ServeHTTP(w, req)
@@ -137,7 +137,7 @@ func TestTracing_IncludesRequestID(t *testing.T) {
 		})),
 	)
 
-	req := httptest.NewRequest(http.MethodGet, "/test", nil)
+	req := httptest.NewRequest(http.MethodGet, "/test", http.NoBody)
 	w := httptest.NewRecorder()
 
 	handler.ServeHTTP(w, req)

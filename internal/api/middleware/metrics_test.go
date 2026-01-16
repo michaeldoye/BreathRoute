@@ -26,7 +26,7 @@ func TestMetrics_Middleware_Success(t *testing.T) {
 		_, _ = w.Write([]byte("OK"))
 	}))
 
-	req := httptest.NewRequest(http.MethodGet, "/test/path", nil)
+	req := httptest.NewRequest(http.MethodGet, "/test/path", http.NoBody)
 	w := httptest.NewRecorder()
 
 	handler.ServeHTTP(w, req)
@@ -44,7 +44,7 @@ func TestMetrics_Middleware_Error(t *testing.T) {
 		_, _ = w.Write([]byte("error"))
 	}))
 
-	req := httptest.NewRequest(http.MethodPost, "/api/resource", nil)
+	req := httptest.NewRequest(http.MethodPost, "/api/resource", http.NoBody)
 	w := httptest.NewRecorder()
 
 	handler.ServeHTTP(w, req)
@@ -61,7 +61,7 @@ func TestMetrics_Middleware_BadRequest(t *testing.T) {
 		_, _ = w.Write([]byte(`{"error": "bad request"}`))
 	}))
 
-	req := httptest.NewRequest(http.MethodPost, "/api/resource", nil)
+	req := httptest.NewRequest(http.MethodPost, "/api/resource", http.NoBody)
 	w := httptest.NewRecorder()
 
 	handler.ServeHTTP(w, req)
@@ -78,7 +78,7 @@ func TestMetrics_Middleware_DefaultStatusCode(t *testing.T) {
 		_, _ = w.Write([]byte("response"))
 	}))
 
-	req := httptest.NewRequest(http.MethodGet, "/test", nil)
+	req := httptest.NewRequest(http.MethodGet, "/test", http.NoBody)
 	w := httptest.NewRecorder()
 
 	handler.ServeHTTP(w, req)

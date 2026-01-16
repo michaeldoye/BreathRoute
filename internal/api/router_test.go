@@ -28,7 +28,7 @@ func newTestRouter() http.Handler {
 func TestRouter_HealthCheck(t *testing.T) {
 	router := newTestRouter()
 
-	req := httptest.NewRequest(http.MethodGet, "/v1/ops/health", nil)
+	req := httptest.NewRequest(http.MethodGet, "/v1/ops/health", http.NoBody)
 	w := httptest.NewRecorder()
 
 	router.ServeHTTP(w, req)
@@ -48,7 +48,7 @@ func TestRouter_HealthCheck(t *testing.T) {
 func TestRouter_ReadinessCheck(t *testing.T) {
 	router := newTestRouter()
 
-	req := httptest.NewRequest(http.MethodGet, "/v1/ops/ready", nil)
+	req := httptest.NewRequest(http.MethodGet, "/v1/ops/ready", http.NoBody)
 	w := httptest.NewRecorder()
 
 	router.ServeHTTP(w, req)
@@ -65,7 +65,7 @@ func TestRouter_ReadinessCheck(t *testing.T) {
 func TestRouter_SystemStatus(t *testing.T) {
 	router := newTestRouter()
 
-	req := httptest.NewRequest(http.MethodGet, "/v1/ops/status", nil)
+	req := httptest.NewRequest(http.MethodGet, "/v1/ops/status", http.NoBody)
 	w := httptest.NewRecorder()
 
 	router.ServeHTTP(w, req)
@@ -84,7 +84,7 @@ func TestRouter_SystemStatus(t *testing.T) {
 func TestRouter_GetMe(t *testing.T) {
 	router := newTestRouter()
 
-	req := httptest.NewRequest(http.MethodGet, "/v1/me", nil)
+	req := httptest.NewRequest(http.MethodGet, "/v1/me", http.NoBody)
 	w := httptest.NewRecorder()
 
 	router.ServeHTTP(w, req)
@@ -102,7 +102,7 @@ func TestRouter_GetMe(t *testing.T) {
 func TestRouter_GetProfile(t *testing.T) {
 	router := newTestRouter()
 
-	req := httptest.NewRequest(http.MethodGet, "/v1/me/profile", nil)
+	req := httptest.NewRequest(http.MethodGet, "/v1/me/profile", http.NoBody)
 	w := httptest.NewRecorder()
 
 	router.ServeHTTP(w, req)
@@ -151,7 +151,7 @@ func TestRouter_UpsertProfile(t *testing.T) {
 func TestRouter_ListCommutes(t *testing.T) {
 	router := newTestRouter()
 
-	req := httptest.NewRequest(http.MethodGet, "/v1/me/commutes", nil)
+	req := httptest.NewRequest(http.MethodGet, "/v1/me/commutes", http.NoBody)
 	w := httptest.NewRecorder()
 
 	router.ServeHTTP(w, req)
@@ -202,7 +202,7 @@ func TestRouter_CreateCommute(t *testing.T) {
 func TestRouter_GetCommute(t *testing.T) {
 	router := newTestRouter()
 
-	req := httptest.NewRequest(http.MethodGet, "/v1/me/commutes/cmt_test123", nil)
+	req := httptest.NewRequest(http.MethodGet, "/v1/me/commutes/cmt_test123", http.NoBody)
 	w := httptest.NewRecorder()
 
 	router.ServeHTTP(w, req)
@@ -219,7 +219,7 @@ func TestRouter_GetCommute(t *testing.T) {
 func TestRouter_DeleteCommute(t *testing.T) {
 	router := newTestRouter()
 
-	req := httptest.NewRequest(http.MethodDelete, "/v1/me/commutes/cmt_test123", nil)
+	req := httptest.NewRequest(http.MethodDelete, "/v1/me/commutes/cmt_test123", http.NoBody)
 	w := httptest.NewRecorder()
 
 	router.ServeHTTP(w, req)
@@ -310,7 +310,7 @@ func TestRouter_PreviewDepartureWindows(t *testing.T) {
 func TestRouter_ListDevices(t *testing.T) {
 	router := newTestRouter()
 
-	req := httptest.NewRequest(http.MethodGet, "/v1/me/devices", nil)
+	req := httptest.NewRequest(http.MethodGet, "/v1/me/devices", http.NoBody)
 	w := httptest.NewRecorder()
 
 	router.ServeHTTP(w, req)
@@ -354,7 +354,7 @@ func TestRouter_RegisterDevice(t *testing.T) {
 func TestRouter_GetEnums(t *testing.T) {
 	router := newTestRouter()
 
-	req := httptest.NewRequest(http.MethodGet, "/v1/metadata/enums", nil)
+	req := httptest.NewRequest(http.MethodGet, "/v1/metadata/enums", http.NoBody)
 	w := httptest.NewRecorder()
 
 	router.ServeHTTP(w, req)
@@ -375,7 +375,7 @@ func TestRouter_GetEnums(t *testing.T) {
 func TestRouter_ListAirQualityStations(t *testing.T) {
 	router := newTestRouter()
 
-	req := httptest.NewRequest(http.MethodGet, "/v1/metadata/air-quality/stations", nil)
+	req := httptest.NewRequest(http.MethodGet, "/v1/metadata/air-quality/stations", http.NoBody)
 	w := httptest.NewRecorder()
 
 	router.ServeHTTP(w, req)
@@ -393,7 +393,7 @@ func TestRouter_GDPR_ExportRequest(t *testing.T) {
 	router := newTestRouter()
 
 	// Create export request
-	req := httptest.NewRequest(http.MethodPost, "/v1/gdpr/export-requests", nil)
+	req := httptest.NewRequest(http.MethodPost, "/v1/gdpr/export-requests", http.NoBody)
 	w := httptest.NewRecorder()
 
 	router.ServeHTTP(w, req)
@@ -413,7 +413,7 @@ func TestRouter_GDPR_DeletionRequest(t *testing.T) {
 	router := newTestRouter()
 
 	// Create deletion request
-	req := httptest.NewRequest(http.MethodPost, "/v1/gdpr/deletion-requests", nil)
+	req := httptest.NewRequest(http.MethodPost, "/v1/gdpr/deletion-requests", http.NoBody)
 	w := httptest.NewRecorder()
 
 	router.ServeHTTP(w, req)
@@ -432,7 +432,7 @@ func TestRouter_GDPR_DeletionRequest(t *testing.T) {
 func TestRouter_RequestID_Generated(t *testing.T) {
 	router := newTestRouter()
 
-	req := httptest.NewRequest(http.MethodGet, "/v1/ops/health", nil)
+	req := httptest.NewRequest(http.MethodGet, "/v1/ops/health", http.NoBody)
 	w := httptest.NewRecorder()
 
 	router.ServeHTTP(w, req)
@@ -445,7 +445,7 @@ func TestRouter_RequestID_Generated(t *testing.T) {
 func TestRouter_RequestID_Preserved(t *testing.T) {
 	router := newTestRouter()
 
-	req := httptest.NewRequest(http.MethodGet, "/v1/ops/health", nil)
+	req := httptest.NewRequest(http.MethodGet, "/v1/ops/health", http.NoBody)
 	req.Header.Set("X-Request-Id", "custom_request_id")
 	w := httptest.NewRecorder()
 
@@ -457,7 +457,7 @@ func TestRouter_RequestID_Preserved(t *testing.T) {
 func TestRouter_NotFound(t *testing.T) {
 	router := newTestRouter()
 
-	req := httptest.NewRequest(http.MethodGet, "/v1/nonexistent", nil)
+	req := httptest.NewRequest(http.MethodGet, "/v1/nonexistent", http.NoBody)
 	w := httptest.NewRecorder()
 
 	router.ServeHTTP(w, req)
