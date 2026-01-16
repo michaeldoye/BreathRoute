@@ -81,7 +81,7 @@ func (p *Problem) Write(w http.ResponseWriter) {
 	w.Header().Set("Content-Type", "application/problem+json")
 	w.Header().Set("X-Request-Id", p.TraceID)
 	w.WriteHeader(p.Status)
-	_ = json.NewEncoder(w).Encode(p) //nolint:errcheck // response already started
+	_ = json.NewEncoder(w).Encode(p)
 }
 
 // NewBadRequest creates a 400 Bad Request problem.

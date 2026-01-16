@@ -24,7 +24,7 @@ func NewOpsHandler(version, buildTime string) *OpsHandler {
 }
 
 // HealthCheck handles GET /v1/ops/health - liveness check.
-func (h *OpsHandler) HealthCheck(w http.ResponseWriter, r *http.Request) {
+func (h *OpsHandler) HealthCheck(w http.ResponseWriter, _ *http.Request) {
 	health := models.Health{
 		Status: models.HealthStatusOK,
 		Time:   models.Timestamp(time.Now()),
@@ -37,7 +37,7 @@ func (h *OpsHandler) HealthCheck(w http.ResponseWriter, r *http.Request) {
 }
 
 // ReadinessCheck handles GET /v1/ops/ready - readiness check.
-func (h *OpsHandler) ReadinessCheck(w http.ResponseWriter, r *http.Request) {
+func (h *OpsHandler) ReadinessCheck(w http.ResponseWriter, _ *http.Request) {
 	// TODO: Add actual dependency checks (database, cache, etc.)
 	health := models.Health{
 		Status: models.HealthStatusOK,
@@ -47,7 +47,7 @@ func (h *OpsHandler) ReadinessCheck(w http.ResponseWriter, r *http.Request) {
 }
 
 // SystemStatus handles GET /v1/ops/status - provider and subsystem status.
-func (h *OpsHandler) SystemStatus(w http.ResponseWriter, r *http.Request) {
+func (h *OpsHandler) SystemStatus(w http.ResponseWriter, _ *http.Request) {
 	// TODO: Add actual subsystem and provider status checks
 	now := models.Timestamp(time.Now())
 	status := models.SystemStatus{

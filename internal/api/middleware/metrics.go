@@ -139,7 +139,7 @@ type ProviderMetrics struct {
 }
 
 // NewProviderMetrics creates metrics for monitoring external provider calls.
-func NewProviderMetrics(providerName string) (*ProviderMetrics, error) {
+func NewProviderMetrics(_ string) (*ProviderMetrics, error) {
 	meter := otel.Meter(meterName)
 
 	requestDuration, err := meter.Float64Histogram(

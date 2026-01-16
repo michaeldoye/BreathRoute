@@ -18,7 +18,7 @@ func NewMeHandler() *MeHandler {
 }
 
 // GetMe handles GET /v1/me - get current user account summary.
-func (h *MeHandler) GetMe(w http.ResponseWriter, r *http.Request) {
+func (h *MeHandler) GetMe(w http.ResponseWriter, _ *http.Request) {
 	// TODO: Get actual user from context (after auth middleware)
 	me := models.Me{
 		UserID:    "usr_01HY1A2B3C4D5E6F7G8H9J",
@@ -29,7 +29,7 @@ func (h *MeHandler) GetMe(w http.ResponseWriter, r *http.Request) {
 }
 
 // GetConsents handles GET /v1/me/consents - get consent states.
-func (h *MeHandler) GetConsents(w http.ResponseWriter, r *http.Request) {
+func (h *MeHandler) GetConsents(w http.ResponseWriter, _ *http.Request) {
 	// TODO: Get actual consents from database
 	consents := models.Consents{
 		Analytics:         true,

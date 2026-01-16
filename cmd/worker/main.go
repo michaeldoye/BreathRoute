@@ -38,7 +38,7 @@ func main() {
 	mux.HandleFunc("/health", func(w http.ResponseWriter, _ *http.Request) {
 		w.Header().Set("Content-Type", "application/json")
 		w.WriteHeader(http.StatusOK)
-		_, _ = fmt.Fprintf(w, `{"status":"healthy","version":"%s"}`, Version) //nolint:errcheck // response write
+		_, _ = fmt.Fprintf(w, `{"status":"healthy","version":"%s"}`, Version)
 	})
 
 	server := &http.Server{

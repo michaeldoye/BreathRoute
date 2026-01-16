@@ -55,7 +55,7 @@ func (h *AlertHandler) PreviewDepartureWindows(w http.ResponseWriter, r *http.Re
 }
 
 // ListAlertSubscriptions handles GET /v1/me/alerts/subscriptions - list alert subscriptions.
-func (h *AlertHandler) ListAlertSubscriptions(w http.ResponseWriter, r *http.Request) {
+func (h *AlertHandler) ListAlertSubscriptions(w http.ResponseWriter, _ *http.Request) {
 	// TODO: Get actual subscriptions from database
 	now := models.Timestamp(time.Now())
 	subscriptions := models.PagedAlertSubscriptions{

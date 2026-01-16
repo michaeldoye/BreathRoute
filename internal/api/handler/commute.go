@@ -22,7 +22,7 @@ func NewCommuteHandler() *CommuteHandler {
 }
 
 // ListCommutes handles GET /v1/me/commutes - list saved commutes.
-func (h *CommuteHandler) ListCommutes(w http.ResponseWriter, r *http.Request) {
+func (h *CommuteHandler) ListCommutes(w http.ResponseWriter, _ *http.Request) {
 	// TODO: Get actual commutes from database with pagination
 	now := models.Timestamp(time.Now())
 	commutes := models.PagedCommutes{

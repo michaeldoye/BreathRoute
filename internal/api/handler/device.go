@@ -21,7 +21,7 @@ func NewDeviceHandler() *DeviceHandler {
 }
 
 // ListDevices handles GET /v1/me/devices - list registered devices.
-func (h *DeviceHandler) ListDevices(w http.ResponseWriter, r *http.Request) {
+func (h *DeviceHandler) ListDevices(w http.ResponseWriter, _ *http.Request) {
 	// TODO: Get actual devices from database
 	now := models.Timestamp(time.Now())
 	devices := models.PagedDevices{

@@ -25,8 +25,7 @@ func NewGDPRHandler() *GDPRHandler {
 func (h *GDPRHandler) CreateExportRequest(w http.ResponseWriter, r *http.Request) {
 	var input models.ExportRequestCreate
 	// Body is optional, ignore decode errors
-	_ = json.NewDecoder(r.Body).Decode(&input) //nolint:errcheck // body is optional
-
+	_ = json.NewDecoder(r.Body).Decode(&input)
 	// TODO: Create export job
 	now := models.Timestamp(time.Now())
 	requestID := "exp_" + uuid.New().String()[:22]
@@ -43,7 +42,7 @@ func (h *GDPRHandler) CreateExportRequest(w http.ResponseWriter, r *http.Request
 }
 
 // ListExportRequests handles GET /v1/gdpr/export-requests - list export requests.
-func (h *GDPRHandler) ListExportRequests(w http.ResponseWriter, r *http.Request) {
+func (h *GDPRHandler) ListExportRequests(w http.ResponseWriter, _ *http.Request) {
 	// TODO: Get actual export requests from database
 	now := models.Timestamp(time.Now())
 	requests := models.PagedExportRequests{
@@ -85,8 +84,7 @@ func (h *GDPRHandler) GetExportRequest(w http.ResponseWriter, r *http.Request) {
 func (h *GDPRHandler) CreateDeletionRequest(w http.ResponseWriter, r *http.Request) {
 	var input models.DeletionRequestCreate
 	// Body is optional, ignore decode errors
-	_ = json.NewDecoder(r.Body).Decode(&input) //nolint:errcheck // body is optional
-
+	_ = json.NewDecoder(r.Body).Decode(&input)
 	// TODO: Create deletion job
 	now := models.Timestamp(time.Now())
 	requestID := "del_" + uuid.New().String()[:22]
@@ -103,7 +101,7 @@ func (h *GDPRHandler) CreateDeletionRequest(w http.ResponseWriter, r *http.Reque
 }
 
 // ListDeletionRequests handles GET /v1/gdpr/deletion-requests - list deletion requests.
-func (h *GDPRHandler) ListDeletionRequests(w http.ResponseWriter, r *http.Request) {
+func (h *GDPRHandler) ListDeletionRequests(w http.ResponseWriter, _ *http.Request) {
 	// TODO: Get actual deletion requests from database
 	now := models.Timestamp(time.Now())
 	requests := models.PagedDeletionRequests{

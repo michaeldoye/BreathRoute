@@ -18,7 +18,7 @@ func NewProfileHandler() *ProfileHandler {
 }
 
 // GetProfile handles GET /v1/me/profile - get user's sensitivity profile.
-func (h *ProfileHandler) GetProfile(w http.ResponseWriter, r *http.Request) {
+func (h *ProfileHandler) GetProfile(w http.ResponseWriter, _ *http.Request) {
 	// TODO: Get actual profile from database
 	profile := models.Profile{
 		Weights: models.ExposureWeights{

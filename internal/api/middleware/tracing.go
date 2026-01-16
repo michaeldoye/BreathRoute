@@ -15,7 +15,7 @@ const tracerName = "github.com/breatheroute/breatheroute/internal/api/middleware
 
 // Tracing returns a middleware that creates spans for HTTP requests.
 // It propagates trace context from incoming requests and adds span attributes.
-func Tracing(serviceName string) func(http.Handler) http.Handler {
+func Tracing(_ string) func(http.Handler) http.Handler {
 	tracer := otel.Tracer(tracerName)
 	propagator := otel.GetTextMapPropagator()
 
