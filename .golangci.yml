@@ -28,7 +28,7 @@ linters:
     - errname        # Check error naming conventions
     - errorlint      # Find code that will cause problems with error wrapping
     - exhaustive     # Check exhaustiveness of enum switch statements
-    - exportloopref  # Check for pointers to loop variables
+    - copyloopvar    # Check for pointers to loop variables (replaced exportloopref)
     - gocognit       # Cognitive complexity
     - goconst        # Find repeated strings that could be constants
     - gocritic       # Opinionated linter
@@ -48,7 +48,7 @@ linters:
     - revive         # Fast, configurable linter
     - sqlclosecheck  # Check SQL rows/statements are closed
     - stylecheck     # Stylecheck is a replacement for golint
-    - tenv           # Detect using os.Setenv in tests
+    - usetesting     # Detect using os.Setenv in tests (replaced tenv)
     - tparallel      # Detect inappropriate use of t.Parallel
     - unconvert      # Remove unnecessary type conversions
     - unparam        # Find unused function parameters
@@ -60,7 +60,7 @@ linters:
     - funlen         # Function length is checked by gocognit
     - gochecknoglobals  # Too restrictive
     - gochecknoinits    # Too restrictive
-    - gomnd          # Magic number detection is too noisy
+    - mnd            # Magic number detection is too noisy (renamed from gomnd)
     - lll            # Line length checked elsewhere
     - wsl            # Whitespace linter is too opinionated
 
