@@ -21,7 +21,7 @@ on:
           - ios
 
 env:
-  GO_VERSION: '1.22'
+  GO_VERSION: '1.24'
   REGION: 'europe-west4'
   REGISTRY: 'europe-west4-docker.pkg.dev'
 
@@ -95,7 +95,7 @@ jobs:
       - name: Build and push API image
         run: |
           VERSION="${{ needs.prepare.outputs.version }}"
-          IMAGE="${{ env.REGISTRY }}/breatheroute-prod/breatheroute/api"
+          IMAGE="${{ env.REGISTRY }}/breatheroute/breatheroute/api"
 
           docker build \
             --build-arg VERSION=${VERSION} \
@@ -111,7 +111,7 @@ jobs:
       - name: Build and push Worker image
         run: |
           VERSION="${{ needs.prepare.outputs.version }}"
-          IMAGE="${{ env.REGISTRY }}/breatheroute-prod/breatheroute/worker"
+          IMAGE="${{ env.REGISTRY }}/breatheroute/breatheroute/worker"
 
           docker build \
             --build-arg VERSION=${VERSION} \
@@ -129,8 +129,8 @@ jobs:
         with:
           service: breatheroute-api
           region: ${{ env.REGION }}
-          image: ${{ env.REGISTRY }}/breatheroute-prod/breatheroute/api:${{ needs.prepare.outputs.version }}
-          project_id: breatheroute-prod
+          image: ${{ env.REGISTRY }}/breatheroute/breatheroute/api:${{ needs.prepare.outputs.version }}
+          project_id: breatheroute
           tag: v${{ needs.prepare.outputs.version }}
 
       - name: Deploy Worker to production
@@ -138,8 +138,8 @@ jobs:
         with:
           service: breatheroute-worker
           region: ${{ env.REGION }}
-          image: ${{ env.REGISTRY }}/breatheroute-prod/breatheroute/worker:${{ needs.prepare.outputs.version }}
-          project_id: breatheroute-prod
+          image: ${{ env.REGISTRY }}/breatheroute/breatheroute/worker:${{ needs.prepare.outputs.version }}
+          project_id: breatheroute
           tag: v${{ needs.prepare.outputs.version }}
 
   release-ios:

@@ -4,27 +4,17 @@ on:
   push:
     branches:
       - main
-      - develop
     paths:
       - 'infrastructure/**'
       - '.github/workflows/terraform.yml'
   pull_request:
     branches:
       - main
-      - develop
     paths:
       - 'infrastructure/**'
       - '.github/workflows/terraform.yml'
   workflow_dispatch:
     inputs:
-      environment:
-        description: 'Environment to deploy'
-        required: true
-        default: 'staging'
-        type: choice
-        options:
-          - staging
-          - prod
       action:
         description: 'Terraform action'
         required: true
@@ -39,34 +29,8 @@ env:
   TF_STATE_BUCKET: 'breatheroute-terraform-state'
 
 jobs:
-  determine-environment:
-    runs-on: ubuntu-latest
-    outputs:
-      environment: ${{ steps.set-env.outputs.environment }}
-      should_apply: ${{ steps.set-env.outputs.should_apply }}
-    steps:
-      - name: Determine environment
-        id: set-env
-        run: |
-          if [ "${{ github.event_name }}" == "workflow_dispatch" ]; then
-            echo "environment=${{ inputs.environment }}" >> $GITHUB_OUTPUT
-            if [ "${{ inputs.action }}" == "apply" ]; then
-              echo "should_apply=true" >> $GITHUB_OUTPUT
-            else
-              echo "should_apply=false" >> $GITHUB_OUTPUT
-            fi
-          elif [ "${{ github.ref }}" == "refs/heads/main" ]; then
-            echo "environment=prod" >> $GITHUB_OUTPUT
-            echo "should_apply=${{ github.event_name == 'push' }}" >> $GITHUB_OUTPUT
-          else
-            echo "environment=staging" >> $GITHUB_OUTPUT
-            echo "should_apply=${{ github.event_name == 'push' }}" >> $GITHUB_OUTPUT
-          fi
-
   terraform:
-    needs: determine-environment
     runs-on: ubuntu-latest
-    environment: ${{ needs.determine-environment.outputs.environment }}
 
     permissions:
       contents: read
@@ -75,7 +39,7 @@ jobs:
 
     defaults:
       run:
-        working-directory: infrastructure/environments/${{ needs.determine-environment.outputs.environment }}
+        working-directory: infrastructure/environments/prod
 
     steps:
       - name: Checkout
@@ -138,7 +102,6 @@ jobs:
 
             </details>
 
-            *Environment: \`${{ needs.determine-environment.outputs.environment }}\`*
             *Pushed by: @${{ github.actor }}, Action: \`${{ github.event_name }}\`*`;
 
             github.rest.issues.createComment({
@@ -152,6 +115,17 @@ jobs:
         if: steps.plan.outcome == 'failure'
         run: exit 1
 
+      - name: Determine if should apply
+        id: should-apply
+        run: |
+          if [ "${{ github.event_name }}" == "workflow_dispatch" ] && [ "${{ inputs.action }}" == "apply" ]; then
+            echo "apply=true" >> $GITHUB_OUTPUT
+          elif [ "${{ github.event_name }}" == "push" ] && [ "${{ github.ref }}" == "refs/heads/main" ]; then
+            echo "apply=true" >> $GITHUB_OUTPUT
+          else
+            echo "apply=false" >> $GITHUB_OUTPUT
+          fi
+
       - name: Terraform Apply
-        if: needs.determine-environment.outputs.should_apply == 'true'
+        if: steps.should-apply.outputs.apply == 'true'
         run: terraform apply -auto-approve tfplan
