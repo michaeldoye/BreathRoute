@@ -1,56 +1,106 @@
+// Package main provides the entrypoint for the BreatheRoute API server.
 package main
 
 import (
 	"context"
-	"fmt"
 	"net/http"
 	"os"
 	"os/signal"
 	"syscall"
 	"time"
+
+	"github.com/rs/zerolog"
+
+	"github.com/breatheroute/breatheroute/internal/api"
+	"github.com/breatheroute/breatheroute/internal/api/middleware"
+	"github.com/breatheroute/breatheroute/internal/telemetry"
 )
 
-// Version and BuildTime are set at compile time via ldflags
+// Version and BuildTime are set at compile time via ldflags.
 var (
 	Version   = "dev"
 	BuildTime = "unknown"
 )
 
 func main() {
-	fmt.Printf("BreatheRoute API v%s (built %s)\n", Version, BuildTime)
+	const serviceName = "breatheroute-api"
 
-	// Get port from environment or default to 8080
+	// Setup structured logging
+	log := zerolog.New(os.Stdout).
+		With().
+		Timestamp().
+		Str("service", serviceName).
+		Str("version", Version).
+		Logger()
+
+	log.Info().
+		Str("build_time", BuildTime).
+		Msg("starting BreatheRoute API")
+
+	// Get configuration from environment
 	port := os.Getenv("APP_PORT")
 	if port == "" {
 		port = "8080"
 	}
 
+	otlpEndpoint := os.Getenv("OTEL_EXPORTER_OTLP_ENDPOINT")
+	if otlpEndpoint == "" {
+		otlpEndpoint = "localhost:4317"
+	}
+
+	env := os.Getenv("APP_ENV")
+	if env == "" {
+		env = "development"
+	}
+
+	// Initialize OpenTelemetry
+	ctx := context.Background()
+	telemetryEnabled := os.Getenv("OTEL_ENABLED") == "true"
+
+	tp, err := telemetry.Init(ctx, telemetry.Config{
+		ServiceName:    serviceName,
+		ServiceVersion: Version,
+		Environment:    env,
+		OTLPEndpoint:   otlpEndpoint,
+		Enabled:        telemetryEnabled,
+	})
+	if err != nil {
+		log.Fatal().Err(err).Msg("failed to initialize telemetry")
+	}
+	defer func() {
+		shutdownCtx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
+		defer cancel()
+		if shutdownErr := tp.Shutdown(shutdownCtx); shutdownErr != nil {
+			log.Error().Err(shutdownErr).Msg("failed to shutdown telemetry")
+		}
+	}()
+
+	if telemetryEnabled {
+		log.Info().
+			Str("otlp_endpoint", otlpEndpoint).
+			Msg("OpenTelemetry initialized")
+	}
+
+	// Initialize metrics
+	metrics, err := middleware.NewMetrics()
+	if err != nil {
+		log.Error().Err(err).Msg("failed to initialize metrics")
+		os.Exit(1) //nolint:gocritic // intentional exit, telemetry cleanup is best-effort
+	}
+
+	// Create router with configuration
+	router := api.NewRouter(api.RouterConfig{
+		Version:     Version,
+		BuildTime:   BuildTime,
+		Logger:      log,
+		ServiceName: serviceName,
+		Metrics:     metrics,
+	})
+
 	// Create HTTP server
-	mux := http.NewServeMux()
-
-	// Health check endpoint
-	mux.HandleFunc("/v1/health", func(w http.ResponseWriter, r *http.Request) {
-		w.Header().Set("Content-Type", "application/json")
-		w.WriteHeader(http.StatusOK)
-		fmt.Fprintf(w, `{"status":"healthy","version":"%s"}`, Version)
-	})
-
-	// Ready check endpoint
-	mux.HandleFunc("/v1/ready", func(w http.ResponseWriter, r *http.Request) {
-		w.Header().Set("Content-Type", "application/json")
-		w.WriteHeader(http.StatusOK)
-		fmt.Fprint(w, `{"status":"ready"}`)
-	})
-
-	// Root endpoint
-	mux.HandleFunc("/", func(w http.ResponseWriter, r *http.Request) {
-		w.Header().Set("Content-Type", "application/json")
-		fmt.Fprintf(w, `{"service":"breatheroute-api","version":"%s"}`, Version)
-	})
-
 	server := &http.Server{
 		Addr:         ":" + port,
-		Handler:      mux,
+		Handler:      router,
 		ReadTimeout:  15 * time.Second,
 		WriteTimeout: 15 * time.Second,
 		IdleTimeout:  60 * time.Second,
@@ -58,10 +108,12 @@ func main() {
 
 	// Start server in goroutine
 	go func() {
-		fmt.Printf("Starting server on :%s\n", port)
+		log.Info().
+			Str("addr", server.Addr).
+			Msg("server listening")
+
 		if err := server.ListenAndServe(); err != nil && err != http.ErrServerClosed {
-			fmt.Printf("Server error: %v\n", err)
-			os.Exit(1)
+			log.Fatal().Err(err).Msg("server error")
 		}
 	}()
 
@@ -70,16 +122,16 @@ func main() {
 	signal.Notify(quit, syscall.SIGINT, syscall.SIGTERM)
 	<-quit
 
-	fmt.Println("Shutting down server...")
+	log.Info().Msg("shutting down server")
 
 	// Graceful shutdown with timeout
 	ctx, cancel := context.WithTimeout(context.Background(), 30*time.Second)
 	defer cancel()
 
 	if err := server.Shutdown(ctx); err != nil {
-		fmt.Printf("Server forced to shutdown: %v\n", err)
+		log.Error().Err(err).Msg("server forced to shutdown")
 		os.Exit(1)
 	}
 
-	fmt.Println("Server stopped")
+	log.Info().Msg("server stopped")
 }

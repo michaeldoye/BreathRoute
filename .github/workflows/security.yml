@@ -44,6 +44,12 @@ jobs:
   codeql-swift:
     name: CodeQL (Swift)
     runs-on: macos-14
+    # Only run when iOS files change or on scheduled runs
+    if: |
+      github.event_name == 'schedule' ||
+      github.event_name == 'workflow_dispatch' ||
+      contains(github.event.head_commit.modified, 'ios/') ||
+      contains(github.event.head_commit.added, 'ios/')
 
     permissions:
       actions: read
@@ -54,26 +60,40 @@ jobs:
       - name: Checkout
         uses: actions/checkout@v4
 
+      - name: Check for Swift files
+        id: check-swift
+        run: |
+          if [ -d "ios" ] && find ios -name "*.swift" | grep -q .; then
+            echo "has_swift=true" >> $GITHUB_OUTPUT
+          else
+            echo "has_swift=false" >> $GITHUB_OUTPUT
+          fi
+
       - name: Initialize CodeQL
+        if: steps.check-swift.outputs.has_swift == 'true'
         uses: github/codeql-action/init@v3
         with:
           languages: swift
 
       - name: Build Swift project
+        if: steps.check-swift.outputs.has_swift == 'true'
         run: |
-          if [ -d "ios" ]; then
-            cd ios
-            xcodebuild build \
-              -scheme BreatheRoute \
-              -destination 'generic/platform=iOS' \
-              CODE_SIGNING_ALLOWED=NO \
-              || echo "Swift build failed, continuing with partial analysis"
-          fi
+          cd ios
+          xcodebuild build \
+            -scheme BreatheRoute \
+            -destination 'generic/platform=iOS' \
+            CODE_SIGNING_ALLOWED=NO \
+            || echo "Swift build failed, continuing with partial analysis"
 
       - name: Perform CodeQL Analysis
+        if: steps.check-swift.outputs.has_swift == 'true'
         uses: github/codeql-action/analyze@v3
         with:
           category: "/language:swift"
+
+      - name: Skip notice
+        if: steps.check-swift.outputs.has_swift != 'true'
+        run: echo "Skipping Swift CodeQL - no Swift files found in ios/"
 
   dependency-review:
     name: Dependency Review
@@ -105,7 +125,10 @@ jobs:
       - name: Set up Go
         uses: actions/setup-go@v5
         with:
-          go-version: '1.22'
+          go-version: '1.24'
+
+      - name: Sync dependencies
+        run: go mod tidy
 
       - name: Install govulncheck
         run: go install golang.org/x/vuln/cmd/govulncheck@latest
@@ -116,6 +139,9 @@ jobs:
   secrets-scan:
     name: Secret Scanning
     runs-on: ubuntu-latest
+
+    permissions:
+      contents: read
 
     steps:
       - name: Checkout
@@ -130,22 +156,39 @@ jobs:
           base: ${{ github.event.repository.default_branch }}
           head: HEAD
           extra_args: --only-verified
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
   terraform-security:
     name: Terraform Security
     runs-on: ubuntu-latest
 
+    permissions:
+      contents: read
+      security-events: write
+
     steps:
       - name: Checkout
         uses: actions/checkout@v4
 
+      - name: Check for Terraform files
+        id: check-tf
+        run: |
+          if [ -d "infrastructure" ] && find infrastructure -name "*.tf" | grep -q .; then
+            echo "has_terraform=true" >> $GITHUB_OUTPUT
+          else
+            echo "has_terraform=false" >> $GITHUB_OUTPUT
+          fi
+
       - name: tfsec
+        if: steps.check-tf.outputs.has_terraform == 'true'
         uses: aquasecurity/tfsec-action@v1.0.3
         with:
           working_directory: infrastructure
           soft_fail: true
 
       - name: Checkov
+        if: steps.check-tf.outputs.has_terraform == 'true'
         uses: bridgecrewio/checkov-action@v12
         with:
           directory: infrastructure
@@ -155,15 +198,23 @@ jobs:
           output_file_path: checkov-results.sarif
 
       - name: Upload Checkov results
+        if: steps.check-tf.outputs.has_terraform == 'true' && always()
         uses: github/codeql-action/upload-sarif@v3
-        if: always()
         with:
           sarif_file: checkov-results.sarif
+
+      - name: Skip notice
+        if: steps.check-tf.outputs.has_terraform != 'true'
+        run: echo "Skipping Terraform security scan - no .tf files found in infrastructure/"
 
   container-scan:
     name: Container Scanning
     runs-on: ubuntu-latest
     if: github.event_name != 'pull_request'
+
+    permissions:
+      contents: read
+      security-events: write
 
     steps:
       - name: Checkout

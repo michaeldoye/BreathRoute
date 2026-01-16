@@ -281,6 +281,7 @@ See [CONTRIBUTING.md](./docs/CONTRIBUTING.md) for details.
 
 | Document | Description |
 |----------|-------------|
+| [FEATURES.md](./FEATURES.md) | Detailed feature documentation with purpose and how it works |
 | [DEVELOPMENT.md](./DEVELOPMENT.md) | Local development guide |
 | [RELEASE.md](./RELEASE.md) | Release process |
 | [CONTRIBUTING.md](./docs/CONTRIBUTING.md) | Contribution guidelines |
@@ -294,7 +295,8 @@ See [CONTRIBUTING.md](./docs/CONTRIBUTING.md) for details.
 
 - [x] Infrastructure setup (GCP, Terraform)
 - [x] CI/CD pipelines
-- [ ] Backend API implementation
+- [x] Backend API scaffolding (Ticket 2010) - See [FEATURES.md](./FEATURES.md#api-service-ticket-2010)
+- [x] Observability: logs, traces, metrics (Ticket 2007) - See [FEATURES.md](./FEATURES.md#observability-ticket-2007)
 - [ ] iOS app foundation
 - [ ] Air quality integration
 - [ ] Route calculation
