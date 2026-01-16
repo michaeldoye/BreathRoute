@@ -1,7 +1,7 @@
 # BreatheRoute Makefile
 # Run 'make help' to see available commands
 
-.PHONY: help dev dev-down dev-logs dev-tools db-shell redis-shell \
+.PHONY: help setup setup-hooks dev dev-down dev-logs dev-tools db-shell redis-shell \
         build test lint fmt clean \
         api worker migrate \
         docker-build docker-push
@@ -30,6 +30,19 @@ help:
 	@echo ""
 	@echo "$(GREEN)Development:$(RESET)"
 	@sed -n 's/^## //p' $(MAKEFILE_LIST) | column -t -s ':' | sed 's/^/  /'
+
+#
+# Setup
+#
+
+## setup: Complete project setup (hooks, dependencies)
+setup: setup-hooks deps
+	@echo "$(GREEN)Project setup complete!$(RESET)"
+
+## setup-hooks: Install git hooks for pre-commit linting
+setup-hooks:
+	@echo "$(CYAN)Installing git hooks...$(RESET)"
+	@./scripts/setup-hooks.sh
 
 #
 # Development Environment

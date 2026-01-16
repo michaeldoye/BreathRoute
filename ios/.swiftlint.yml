@@ -1,0 +1,295 @@
+# SwiftLint Configuration
+# https://github.com/realm/SwiftLint
+
+# Paths to include
+included:
+  - BreatheRoute
+  - BreatheRouteTests
+  - BreatheRouteUITests
+
+# Paths to exclude
+excluded:
+  - Pods
+  - .build
+  - DerivedData
+  - Carthage
+  - vendor
+  - "*/Generated/*"
+
+# Rules
+disabled_rules:
+  - trailing_comma           # Allow trailing commas
+  - identifier_name          # Too restrictive for short names
+  - type_name               # Sometimes short names are fine
+
+opt_in_rules:
+  # Idiomatic
+  - array_init
+  - closure_end_indentation
+  - closure_spacing
+  - collection_alignment
+  - contains_over_filter_count
+  - contains_over_filter_is_empty
+  - contains_over_first_not_nil
+  - contains_over_range_nil_comparison
+  - discouraged_none_name
+  - discouraged_object_literal
+  - empty_collection_literal
+  - empty_count
+  - empty_string
+  - enum_case_associated_values_count
+  - explicit_init
+  - extension_access_modifier
+  - fallthrough
+  - fatal_error_message
+  - file_header
+  - file_name_no_space
+  - first_where
+  - flatmap_over_map_reduce
+  - force_unwrapping
+  - identical_operands
+  - implicit_return
+  - implicitly_unwrapped_optional
+  - joined_default_parameter
+  - last_where
+  - legacy_multiple
+  - legacy_random
+  - literal_expression_end_indentation
+  - lower_acl_than_parent
+  - modifier_order
+  - multiline_arguments
+  - multiline_function_chains
+  - multiline_literal_brackets
+  - multiline_parameters
+  - multiline_parameters_brackets
+  - nimble_operator
+  - nslocalizedstring_key
+  - number_separator
+  - object_literal
+  - operator_usage_whitespace
+  - optional_enum_case_matching
+  - overridden_super_call
+  - override_in_extension
+  - pattern_matching_keywords
+  - prefer_self_in_static_references
+  - prefer_self_type_over_type_of_self
+  - prefer_zero_over_explicit_init
+  - private_action
+  - private_outlet
+  - prohibited_interface_builder
+  - prohibited_super_call
+  - quick_discouraged_call
+  - quick_discouraged_focused_test
+  - quick_discouraged_pending_test
+  - reduce_into
+  - redundant_nil_coalescing
+  - redundant_type_annotation
+  - return_value_from_void_function
+  - self_binding
+  - shorthand_optional_binding
+  - single_test_class
+  - sorted_first_last
+  - sorted_imports
+  - static_operator
+  - strong_iboutlet
+  - switch_case_on_newline
+  - test_case_accessibility
+  - toggle_bool
+  - unavailable_function
+  - unneeded_parentheses_in_closure_argument
+  - unowned_variable_capture
+  - untyped_error_in_catch
+  - vertical_parameter_alignment_on_call
+  - vertical_whitespace_closing_braces
+  - vertical_whitespace_opening_braces
+  - xct_specific_matcher
+  - yoda_condition
+
+# Rule configurations
+analyzer_rules:
+  - unused_declaration
+  - unused_import
+
+line_length:
+  warning: 120
+  error: 200
+  ignores_comments: true
+  ignores_urls: true
+  ignores_function_declarations: false
+  ignores_interpolated_strings: true
+
+file_length:
+  warning: 500
+  error: 1000
+  ignore_comment_only_lines: true
+
+type_body_length:
+  warning: 300
+  error: 500
+
+function_body_length:
+  warning: 50
+  error: 100
+
+function_parameter_count:
+  warning: 6
+  error: 8
+
+cyclomatic_complexity:
+  warning: 15
+  error: 25
+
+nesting:
+  type_level:
+    warning: 2
+    error: 3
+  function_level:
+    warning: 3
+    error: 5
+
+large_tuple:
+  warning: 3
+  error: 4
+
+# Naming
+type_name:
+  min_length: 2
+  max_length:
+    warning: 50
+    error: 60
+  allowed_symbols: []
+  validates_start_with_lowercase: true
+
+identifier_name:
+  min_length:
+    warning: 1
+    error: 1
+  max_length:
+    warning: 50
+    error: 60
+  excluded:
+    - id
+    - x
+    - y
+    - z
+    - i
+    - j
+    - k
+    - to
+    - at
+    - or
+    - on
+    - in
+    - up
+
+# Force rules
+force_cast:
+  severity: error
+
+force_try:
+  severity: error
+
+force_unwrapping:
+  severity: warning
+
+implicitly_unwrapped_optional:
+  mode: all_except_iboutlets
+  severity: warning
+
+# Collections
+empty_count:
+  severity: warning
+
+empty_string:
+  severity: warning
+
+# Style
+colon:
+  apply_to_dictionaries: true
+  flexible_right_spacing: false
+
+comma:
+  severity: warning
+
+opening_brace:
+  severity: warning
+
+closing_brace:
+  severity: warning
+
+return_arrow_whitespace:
+  severity: warning
+
+statement_position:
+  statement_mode: default
+  severity: warning
+
+vertical_whitespace:
+  max_empty_lines: 1
+
+trailing_whitespace:
+  ignores_empty_lines: true
+  ignores_comments: true
+
+# Imports
+sorted_imports:
+  severity: warning
+
+# File header
+file_header:
+  required_pattern: |
+                    \/\/
+                    \/\/  .*\.swift
+                    \/\/  BreatheRoute
+                    \/\/
+                    \/\/  Created by .*
+                    \/\/
+
+# Multiline
+multiline_arguments:
+  first_argument_location: next_line
+  only_enforce_after_first_closure_on_first_line: true
+
+multiline_parameters:
+  allowsSingleLine: true
+
+# Custom rules
+custom_rules:
+  no_print:
+    name: "No print statements"
+    regex: "\\bprint\\s*\\("
+    message: "Use Logger instead of print statements"
+    severity: warning
+    match_kinds:
+      - identifier
+
+  no_nslog:
+    name: "No NSLog"
+    regex: "\\bNSLog\\s*\\("
+    message: "Use Logger instead of NSLog"
+    severity: warning
+    match_kinds:
+      - identifier
+
+  no_hardcoded_strings_in_views:
+    name: "No hardcoded strings in views"
+    regex: 'Text\s*\(\s*"[^"]+"\s*\)'
+    message: "Use LocalizedStringKey or String(localized:) for user-facing text"
+    severity: warning
+    match_kinds:
+      - identifier
+    excluded: ".*Tests\\.swift"
+
+  mark_syntax:
+    name: "MARK syntax"
+    regex: "// MARK: -?[^ ]"
+    message: "MARK should have a space after the colon"
+    severity: warning
+
+  todo_without_jira:
+    name: "TODO without ticket"
+    regex: "//\\s*TODO(?!.*\\[BR-\\d+\\])"
+    message: "TODOs should reference a Jira ticket [BR-XXX]"
+    severity: warning
+
+reporter: "xcode"

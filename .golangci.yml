@@ -1,0 +1,194 @@
+# GolangCI-Lint Configuration
+# https://golangci-lint.run/usage/configuration/
+
+run:
+  timeout: 5m
+  modules-download-mode: readonly
+  allow-parallel-runners: true
+
+output:
+  formats:
+    - format: colored-line-number
+  sort-results: true
+
+linters:
+  enable:
+    # Default linters
+    - errcheck       # Check for unchecked errors
+    - gosimple       # Simplify code
+    - govet          # Examine Go source code
+    - ineffassign    # Detect ineffectual assignments
+    - staticcheck    # Static analysis checks
+    - unused         # Check for unused code
+
+    # Additional linters
+    - bodyclose      # Check HTTP response body is closed
+    - contextcheck   # Check context.Context is passed correctly
+    - durationcheck  # Check duration multiplication
+    - errname        # Check error naming conventions
+    - errorlint      # Find code that will cause problems with error wrapping
+    - exhaustive     # Check exhaustiveness of enum switch statements
+    - exportloopref  # Check for pointers to loop variables
+    - gocognit       # Cognitive complexity
+    - goconst        # Find repeated strings that could be constants
+    - gocritic       # Opinionated linter
+    - gocyclo        # Cyclomatic complexity
+    - godot          # Check comments end in a period
+    - gofmt          # Check code is formatted
+    - goimports      # Check imports are sorted
+    - gosec          # Security checker
+    - misspell       # Find misspelled words
+    - nakedret       # Find naked returns
+    - nilerr         # Find code that returns nil even on error
+    - nilnil         # Check for returning nil, nil
+    - noctx          # Find HTTP requests without context
+    - nolintlint     # Check nolint directives
+    - prealloc       # Find slice declarations that could be pre-allocated
+    - predeclared    # Find code that shadows predeclared identifiers
+    - revive         # Fast, configurable linter
+    - sqlclosecheck  # Check SQL rows/statements are closed
+    - stylecheck     # Stylecheck is a replacement for golint
+    - tenv           # Detect using os.Setenv in tests
+    - tparallel      # Detect inappropriate use of t.Parallel
+    - unconvert      # Remove unnecessary type conversions
+    - unparam        # Find unused function parameters
+    - wastedassign   # Find wasted assignments
+    - whitespace     # Check for unnecessary whitespace
+
+  disable:
+    - depguard       # Too restrictive for most projects
+    - funlen         # Function length is checked by gocognit
+    - gochecknoglobals  # Too restrictive
+    - gochecknoinits    # Too restrictive
+    - gomnd          # Magic number detection is too noisy
+    - lll            # Line length checked elsewhere
+    - wsl            # Whitespace linter is too opinionated
+
+linters-settings:
+  errcheck:
+    check-type-assertions: true
+    check-blank: true
+    exclude-functions:
+      - io.Copy
+      - io.WriterTo.WriteTo
+      - (io.Closer).Close
+
+  gocognit:
+    min-complexity: 20
+
+  gocyclo:
+    min-complexity: 15
+
+  goconst:
+    min-len: 3
+    min-occurrences: 3
+
+  gocritic:
+    enabled-tags:
+      - diagnostic
+      - experimental
+      - opinionated
+      - performance
+      - style
+    disabled-checks:
+      - whyNoLint  # Covered by nolintlint
+      - hugeParam  # Too noisy for request/response structs
+
+  gofmt:
+    simplify: true
+
+  goimports:
+    local-prefixes: github.com/breatheroute/breatheroute
+
+  gosec:
+    excludes:
+      - G104  # Audit errors not checked - covered by errcheck
+    config:
+      G306: "0644"  # Allow common file permissions
+
+  govet:
+    enable-all: true
+    disable:
+      - fieldalignment  # Too noisy, micro-optimization
+
+  misspell:
+    locale: US
+
+  nakedret:
+    max-func-lines: 30
+
+  nolintlint:
+    require-explanation: true
+    require-specific: true
+
+  revive:
+    rules:
+      - name: blank-imports
+      - name: context-as-argument
+      - name: context-keys-type
+      - name: dot-imports
+      - name: error-naming
+      - name: error-return
+      - name: error-strings
+      - name: exported
+      - name: if-return
+      - name: increment-decrement
+      - name: indent-error-flow
+      - name: package-comments
+      - name: range
+      - name: receiver-naming
+      - name: time-naming
+      - name: unexported-return
+      - name: var-declaration
+      - name: var-naming
+
+  stylecheck:
+    checks:
+      - all
+      - -ST1000  # Package comments not required for internal packages
+      - -ST1003  # Allow underscores in some cases
+
+  unparam:
+    check-exported: false
+
+issues:
+  exclude-use-default: false
+
+  exclude-rules:
+    # Exclude some linters from running on tests
+    - path: _test\.go
+      linters:
+        - gocognit
+        - gocyclo
+        - errcheck
+        - gosec
+        - unparam
+
+    # Exclude some linters from running on main.go
+    - path: cmd/.+/main\.go
+      linters:
+        - gochecknoglobals
+
+    # Allow fmt.Printf in main
+    - path: cmd/
+      linters:
+        - forbidigo
+
+    # Ignore long lines in generated files
+    - path: _generated\.go
+      linters:
+        - lll
+
+  max-issues-per-linter: 0
+  max-same-issues: 0
+  new: false
+
+severity:
+  default-severity: warning
+  rules:
+    - linters:
+        - gosec
+      severity: error
+    - linters:
+        - errcheck
+      severity: error
