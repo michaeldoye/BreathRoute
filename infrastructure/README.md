@@ -196,16 +196,29 @@ GitHub Actions workflows are configured in `.github/workflows/`:
 
 | Workflow | Purpose | Trigger |
 |----------|---------|---------|
+| `ci.yml` | Tests, linting, build verification | PRs and pushes to `main` |
+| `release.yml` | Build and deploy to production | Git tags `v*.*.*` |
 | `terraform.yml` | Infrastructure deployment | Changes to `infrastructure/` |
-| `deploy.yml` | Backend build & deploy | Push to `main` |
 | `ios.yml` | iOS build & TestFlight | Changes to `ios/` |
-| `release.yml` | Coordinated releases | Git tags `v*.*.*` |
 | `security.yml` | Security scanning | Weekly + PRs |
 
 ### Backend Deployment Flow
 
-1. Push to `main` → Build, test, and deploy to production
-2. Manual dispatch available for selective deployments (API only, Worker only)
+| Event | Actions |
+|-------|---------|
+| PR to `develop` | Run tests, linting, and build check (ci.yml) |
+| Push to `develop` | Run tests, linting, and build check (ci.yml) |
+| PR to `main` | Run tests, linting, and build check (ci.yml) |
+| Push to `main` | Run tests, linting, and build check (ci.yml) |
+| Git tag `v*.*.*` | Run tests → Build images → Deploy to Cloud Run (release.yml) |
+
+### Creating a Release
+
+```bash
+# Tag a release (triggers production deployment)
+git tag v1.0.0
+git push origin v1.0.0
+```
 
 ### Required GitHub Secrets
 
