@@ -158,17 +158,32 @@ jobs:
     name: Terraform Security
     runs-on: ubuntu-latest
 
+    permissions:
+      contents: read
+      security-events: write
+
     steps:
       - name: Checkout
         uses: actions/checkout@v4
 
+      - name: Check for Terraform files
+        id: check-tf
+        run: |
+          if [ -d "infrastructure" ] && find infrastructure -name "*.tf" | grep -q .; then
+            echo "has_terraform=true" >> $GITHUB_OUTPUT
+          else
+            echo "has_terraform=false" >> $GITHUB_OUTPUT
+          fi
+
       - name: tfsec
+        if: steps.check-tf.outputs.has_terraform == 'true'
         uses: aquasecurity/tfsec-action@v1.0.3
         with:
           working_directory: infrastructure
           soft_fail: true
 
       - name: Checkov
+        if: steps.check-tf.outputs.has_terraform == 'true'
         uses: bridgecrewio/checkov-action@v12
         with:
           directory: infrastructure
@@ -178,15 +193,23 @@ jobs:
           output_file_path: checkov-results.sarif
 
       - name: Upload Checkov results
+        if: steps.check-tf.outputs.has_terraform == 'true' && always()
         uses: github/codeql-action/upload-sarif@v3
-        if: always()
         with:
           sarif_file: checkov-results.sarif
+
+      - name: Skip notice
+        if: steps.check-tf.outputs.has_terraform != 'true'
+        run: echo "Skipping Terraform security scan - no .tf files found in infrastructure/"
 
   container-scan:
     name: Container Scanning
     runs-on: ubuntu-latest
     if: github.event_name != 'pull_request'
+
+    permissions:
+      contents: read
+      security-events: write
 
     steps:
       - name: Checkout
