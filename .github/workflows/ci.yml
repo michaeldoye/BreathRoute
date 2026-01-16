@@ -36,10 +36,9 @@ jobs:
         run: go mod download
 
       - name: Run linter
-        uses: golangci/golangci-lint-action@v4
+        uses: golangci/golangci-lint-action@v7
         with:
-          version: latest
-          args: --timeout=5m
+          version: v2.8.0
 
       - name: Run tests
         run: go test -race -coverprofile=coverage.out -covermode=atomic ./...
