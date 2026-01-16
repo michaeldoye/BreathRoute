@@ -44,6 +44,12 @@ jobs:
   codeql-swift:
     name: CodeQL (Swift)
     runs-on: macos-14
+    # Only run when iOS files change or on scheduled runs
+    if: |
+      github.event_name == 'schedule' ||
+      github.event_name == 'workflow_dispatch' ||
+      contains(github.event.head_commit.modified, 'ios/') ||
+      contains(github.event.head_commit.added, 'ios/')
 
     permissions:
       actions: read
@@ -54,26 +60,40 @@ jobs:
       - name: Checkout
         uses: actions/checkout@v4
 
+      - name: Check for Swift files
+        id: check-swift
+        run: |
+          if [ -d "ios" ] && find ios -name "*.swift" | grep -q .; then
+            echo "has_swift=true" >> $GITHUB_OUTPUT
+          else
+            echo "has_swift=false" >> $GITHUB_OUTPUT
+          fi
+
       - name: Initialize CodeQL
+        if: steps.check-swift.outputs.has_swift == 'true'
         uses: github/codeql-action/init@v3
         with:
           languages: swift
 
       - name: Build Swift project
+        if: steps.check-swift.outputs.has_swift == 'true'
         run: |
-          if [ -d "ios" ]; then
-            cd ios
-            xcodebuild build \
-              -scheme BreatheRoute \
-              -destination 'generic/platform=iOS' \
-              CODE_SIGNING_ALLOWED=NO \
-              || echo "Swift build failed, continuing with partial analysis"
-          fi
+          cd ios
+          xcodebuild build \
+            -scheme BreatheRoute \
+            -destination 'generic/platform=iOS' \
+            CODE_SIGNING_ALLOWED=NO \
+            || echo "Swift build failed, continuing with partial analysis"
 
       - name: Perform CodeQL Analysis
+        if: steps.check-swift.outputs.has_swift == 'true'
         uses: github/codeql-action/analyze@v3
         with:
           category: "/language:swift"
+
+      - name: Skip notice
+        if: steps.check-swift.outputs.has_swift != 'true'
+        run: echo "Skipping Swift CodeQL - no Swift files found in ios/"
 
   dependency-review:
     name: Dependency Review
@@ -105,7 +125,10 @@ jobs:
       - name: Set up Go
         uses: actions/setup-go@v5
         with:
-          go-version: '1.22'
+          go-version: '1.23'
+
+      - name: Sync dependencies
+        run: go mod tidy
 
       - name: Install govulncheck
         run: go install golang.org/x/vuln/cmd/govulncheck@latest
