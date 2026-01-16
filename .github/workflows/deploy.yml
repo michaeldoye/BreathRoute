@@ -4,7 +4,6 @@ on:
   push:
     branches:
       - main
-      - develop
     paths-ignore:
       - 'infrastructure/**'
       - '*.md'
@@ -12,20 +11,11 @@ on:
   pull_request:
     branches:
       - main
-      - develop
     paths-ignore:
       - 'infrastructure/**'
       - '*.md'
   workflow_dispatch:
     inputs:
-      environment:
-        description: 'Environment to deploy'
-        required: true
-        default: 'staging'
-        type: choice
-        options:
-          - staging
-          - prod
       service:
         description: 'Service to deploy'
         required: true
@@ -40,13 +30,12 @@ env:
   GO_VERSION: '1.22'
   REGION: 'europe-west4'
   REGISTRY: 'europe-west4-docker.pkg.dev'
+  PROJECT_ID: 'breatheroute'
 
 jobs:
   determine-config:
     runs-on: ubuntu-latest
     outputs:
-      environment: ${{ steps.config.outputs.environment }}
-      project_id: ${{ steps.config.outputs.project_id }}
       should_deploy: ${{ steps.config.outputs.should_deploy }}
       deploy_api: ${{ steps.config.outputs.deploy_api }}
       deploy_worker: ${{ steps.config.outputs.deploy_worker }}
@@ -54,23 +43,6 @@ jobs:
       - name: Determine configuration
         id: config
         run: |
-          # Determine environment
-          if [ "${{ github.event_name }}" == "workflow_dispatch" ]; then
-            ENV="${{ inputs.environment }}"
-          elif [ "${{ github.ref }}" == "refs/heads/main" ]; then
-            ENV="prod"
-          else
-            ENV="staging"
-          fi
-          echo "environment=$ENV" >> $GITHUB_OUTPUT
-
-          # Set project ID based on environment
-          if [ "$ENV" == "prod" ]; then
-            echo "project_id=breatheroute-prod" >> $GITHUB_OUTPUT
-          else
-            echo "project_id=breatheroute-staging" >> $GITHUB_OUTPUT
-          fi
-
           # Determine if we should deploy
           if [ "${{ github.event_name }}" == "pull_request" ]; then
             echo "should_deploy=false" >> $GITHUB_OUTPUT
@@ -124,7 +96,6 @@ jobs:
   build-api:
     needs: [determine-config, test]
     runs-on: ubuntu-latest
-    environment: ${{ needs.determine-config.outputs.environment }}
     if: needs.determine-config.outputs.deploy_api == 'true'
 
     permissions:
@@ -151,10 +122,8 @@ jobs:
 
       - name: Build and push image
         id: build
-        env:
-          PROJECT_ID: ${{ needs.determine-config.outputs.project_id }}
         run: |
-          IMAGE="${{ env.REGISTRY }}/${PROJECT_ID}/breatheroute/api:${{ github.sha }}"
+          IMAGE="${{ env.REGISTRY }}/${{ env.PROJECT_ID }}/breatheroute/api:${{ github.sha }}"
 
           docker build \
             --build-arg VERSION=${{ github.sha }} \
@@ -165,16 +134,15 @@ jobs:
 
           docker push ${IMAGE}
 
-          # Also tag as latest for the environment
-          docker tag ${IMAGE} "${{ env.REGISTRY }}/${PROJECT_ID}/breatheroute/api:latest"
-          docker push "${{ env.REGISTRY }}/${PROJECT_ID}/breatheroute/api:latest"
+          # Also tag as latest
+          docker tag ${IMAGE} "${{ env.REGISTRY }}/${{ env.PROJECT_ID }}/breatheroute/api:latest"
+          docker push "${{ env.REGISTRY }}/${{ env.PROJECT_ID }}/breatheroute/api:latest"
 
           echo "image=${IMAGE}" >> $GITHUB_OUTPUT
 
   build-worker:
     needs: [determine-config, test]
     runs-on: ubuntu-latest
-    environment: ${{ needs.determine-config.outputs.environment }}
     if: needs.determine-config.outputs.deploy_worker == 'true'
 
     permissions:
@@ -201,10 +169,8 @@ jobs:
 
       - name: Build and push image
         id: build
-        env:
-          PROJECT_ID: ${{ needs.determine-config.outputs.project_id }}
         run: |
-          IMAGE="${{ env.REGISTRY }}/${PROJECT_ID}/breatheroute/worker:${{ github.sha }}"
+          IMAGE="${{ env.REGISTRY }}/${{ env.PROJECT_ID }}/breatheroute/worker:${{ github.sha }}"
 
           docker build \
             --build-arg VERSION=${{ github.sha }} \
@@ -215,16 +181,15 @@ jobs:
 
           docker push ${IMAGE}
 
-          # Also tag as latest for the environment
-          docker tag ${IMAGE} "${{ env.REGISTRY }}/${PROJECT_ID}/breatheroute/worker:latest"
-          docker push "${{ env.REGISTRY }}/${PROJECT_ID}/breatheroute/worker:latest"
+          # Also tag as latest
+          docker tag ${IMAGE} "${{ env.REGISTRY }}/${{ env.PROJECT_ID }}/breatheroute/worker:latest"
+          docker push "${{ env.REGISTRY }}/${{ env.PROJECT_ID }}/breatheroute/worker:latest"
 
           echo "image=${IMAGE}" >> $GITHUB_OUTPUT
 
   deploy-api:
     needs: [determine-config, build-api]
     runs-on: ubuntu-latest
-    environment: ${{ needs.determine-config.outputs.environment }}
     if: needs.determine-config.outputs.should_deploy == 'true' && needs.determine-config.outputs.deploy_api == 'true'
 
     permissions:
@@ -243,18 +208,16 @@ jobs:
           service: breatheroute-api
           region: ${{ env.REGION }}
           image: ${{ needs.build-api.outputs.image }}
-          project_id: ${{ needs.determine-config.outputs.project_id }}
+          project_id: ${{ env.PROJECT_ID }}
 
       - name: Output service URL
         run: |
           echo "API deployed successfully!"
           echo "Service: breatheroute-api"
-          echo "Environment: ${{ needs.determine-config.outputs.environment }}"
 
   deploy-worker:
     needs: [determine-config, build-worker]
     runs-on: ubuntu-latest
-    environment: ${{ needs.determine-config.outputs.environment }}
     if: needs.determine-config.outputs.should_deploy == 'true' && needs.determine-config.outputs.deploy_worker == 'true'
 
     permissions:
@@ -273,18 +236,16 @@ jobs:
           service: breatheroute-worker
           region: ${{ env.REGION }}
           image: ${{ needs.build-worker.outputs.image }}
-          project_id: ${{ needs.determine-config.outputs.project_id }}
+          project_id: ${{ env.PROJECT_ID }}
 
       - name: Output service URL
         run: |
           echo "Worker deployed successfully!"
           echo "Service: breatheroute-worker"
-          echo "Environment: ${{ needs.determine-config.outputs.environment }}"
 
   run-migrations:
     needs: [determine-config, deploy-api]
     runs-on: ubuntu-latest
-    environment: ${{ needs.determine-config.outputs.environment }}
     if: needs.determine-config.outputs.should_deploy == 'true'
 
     permissions:
@@ -304,13 +265,11 @@ jobs:
         uses: google-github-actions/setup-gcloud@v2
 
       - name: Run database migrations
-        env:
-          PROJECT_ID: ${{ needs.determine-config.outputs.project_id }}
         run: |
           # Option 1: Run migrations via Cloud Run job
           # gcloud run jobs execute breatheroute-migrations \
           #   --region ${{ env.REGION }} \
-          #   --project ${PROJECT_ID} \
+          #   --project ${{ env.PROJECT_ID }} \
           #   --wait
 
           # Option 2: Run via Cloud SQL Auth Proxy (requires additional setup)
@@ -335,5 +294,4 @@ jobs:
           echo "| API | ${{ needs.deploy-api.result }} |" >> $GITHUB_STEP_SUMMARY
           echo "| Worker | ${{ needs.deploy-worker.result }} |" >> $GITHUB_STEP_SUMMARY
           echo "" >> $GITHUB_STEP_SUMMARY
-          echo "**Environment:** ${{ needs.determine-config.outputs.environment }}" >> $GITHUB_STEP_SUMMARY
           echo "**Commit:** ${{ github.sha }}" >> $GITHUB_STEP_SUMMARY
