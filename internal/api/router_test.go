@@ -177,7 +177,7 @@ func TestRouter_CreateCommute(t *testing.T) {
 		Destination: models.CommuteLocation{
 			Point: models.Point{Lat: 52.31, Lon: 4.76},
 		},
-		DaysOfWeek:               []int{1, 2, 3, 4, 5},
+		DaysOfWeek:                []int{1, 2, 3, 4, 5},
 		PreferredArrivalTimeLocal: "09:00",
 	}
 	body, _ := json.Marshal(input)

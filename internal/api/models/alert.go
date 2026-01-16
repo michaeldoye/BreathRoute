@@ -45,8 +45,8 @@ type AlertSubscription struct {
 
 // AlertThreshold determines when an alert triggers.
 type AlertThreshold struct {
-	Type                    AlertThresholdType `json:"type" validate:"required,oneof=ABSOLUTE_SCORE PERCENT_WORSE_THAN_BASELINE"`
-	AbsoluteScore           *float64           `json:"absoluteScore,omitempty"`
+	Type                     AlertThresholdType `json:"type" validate:"required,oneof=ABSOLUTE_SCORE PERCENT_WORSE_THAN_BASELINE"`
+	AbsoluteScore            *float64           `json:"absoluteScore,omitempty"`
 	PercentWorseThanBaseline *float64           `json:"percentWorseThanBaseline,omitempty"`
 }
 

@@ -95,13 +95,13 @@ func TestTracing_RecordsStatusCode(t *testing.T) {
 	attrs := spans[0].Attributes()
 	found := false
 	for _, attr := range attrs {
-		if attr.Key == "http.status_code" {
+		if attr.Key == "http.response.status_code" {
 			found = true
 			assert.Equal(t, int64(404), attr.Value.AsInt64())
 			break
 		}
 	}
-	assert.True(t, found, "http.status_code attribute should be set")
+	assert.True(t, found, "http.response.status_code attribute should be set")
 }
 
 func TestTracing_MarksErrorOnServerError(t *testing.T) {

@@ -8,7 +8,6 @@ import (
 	"go.opentelemetry.io/otel/attribute"
 	"go.opentelemetry.io/otel/codes"
 	"go.opentelemetry.io/otel/propagation"
-	semconv "go.opentelemetry.io/otel/semconv/v1.24.0"
 	"go.opentelemetry.io/otel/trace"
 )
 
@@ -32,14 +31,15 @@ func Tracing(serviceName string) func(http.Handler) http.Handler {
 			ctx, span := tracer.Start(ctx, spanName,
 				trace.WithSpanKind(trace.SpanKindServer),
 				trace.WithAttributes(
-					semconv.HTTPMethod(r.Method),
-					semconv.HTTPURL(r.URL.String()),
-					semconv.HTTPRoute(r.URL.Path),
-					semconv.HTTPScheme(scheme(r)),
-					semconv.HTTPTarget(r.URL.RequestURI()),
-					semconv.NetHostName(r.Host),
-					semconv.UserAgentOriginal(r.UserAgent()),
-					attribute.String("http.remote_addr", r.RemoteAddr),
+					attribute.String("http.request.method", r.Method),
+					attribute.String("url.full", r.URL.String()),
+					attribute.String("http.route", r.URL.Path),
+					attribute.String("url.scheme", scheme(r)),
+					attribute.String("url.path", r.URL.Path),
+					attribute.String("url.query", r.URL.RawQuery),
+					attribute.String("server.address", r.Host),
+					attribute.String("user_agent.original", r.UserAgent()),
+					attribute.String("client.address", r.RemoteAddr),
 				),
 			)
 			defer span.End()
@@ -57,8 +57,8 @@ func Tracing(serviceName string) func(http.Handler) http.Handler {
 
 			// Record response attributes
 			span.SetAttributes(
-				semconv.HTTPStatusCode(wrapped.statusCode),
-				attribute.Int64("http.response_size", wrapped.written),
+				attribute.Int("http.response.status_code", wrapped.statusCode),
+				attribute.Int64("http.response.body.size", wrapped.written),
 			)
 
 			// Mark span as error if status >= 500
@@ -101,4 +101,3 @@ func scheme(r *http.Request) string {
 	}
 	return "http"
 }
-

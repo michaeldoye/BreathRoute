@@ -14,7 +14,7 @@ func JSON(w http.ResponseWriter, status int, data interface{}) {
 	w.Header().Set("Content-Type", "application/json")
 	w.WriteHeader(status)
 	if data != nil {
-		_ = json.NewEncoder(w).Encode(data)
+		_ = json.NewEncoder(w).Encode(data) //nolint:errcheck // response already started
 	}
 }
 
@@ -81,7 +81,7 @@ func Created(w http.ResponseWriter, location string, data interface{}) {
 	}
 	w.WriteHeader(http.StatusCreated)
 	if data != nil {
-		_ = json.NewEncoder(w).Encode(data)
+		_ = json.NewEncoder(w).Encode(data) //nolint:errcheck // response already started
 	}
 }
 
@@ -98,6 +98,6 @@ func Accepted(w http.ResponseWriter, location string, data interface{}) {
 	}
 	w.WriteHeader(http.StatusAccepted)
 	if data != nil {
-		_ = json.NewEncoder(w).Encode(data)
+		_ = json.NewEncoder(w).Encode(data) //nolint:errcheck // response already started
 	}
 }

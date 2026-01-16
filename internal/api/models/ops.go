@@ -25,9 +25,9 @@ type SubsystemStatus struct {
 
 // ProviderStatus represents the status of an external provider.
 type ProviderStatus struct {
-	Provider      string     `json:"provider"`
+	Provider      string       `json:"provider"`
 	Status        HealthStatus `json:"status"`
-	LastSuccessAt *Timestamp `json:"lastSuccessAt,omitempty"`
-	LastFailureAt *Timestamp `json:"lastFailureAt,omitempty"`
-	Message       *string    `json:"message,omitempty"`
+	LastSuccessAt *Timestamp   `json:"lastSuccessAt,omitempty"`
+	LastFailureAt *Timestamp   `json:"lastFailureAt,omitempty"`
+	Message       *string      `json:"message,omitempty"`
 }

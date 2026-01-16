@@ -24,8 +24,8 @@ func NewGDPRHandler() *GDPRHandler {
 // CreateExportRequest handles POST /v1/gdpr/export-requests - create export request.
 func (h *GDPRHandler) CreateExportRequest(w http.ResponseWriter, r *http.Request) {
 	var input models.ExportRequestCreate
-	// Body is optional
-	_ = json.NewDecoder(r.Body).Decode(&input)
+	// Body is optional, ignore decode errors
+	_ = json.NewDecoder(r.Body).Decode(&input) //nolint:errcheck // body is optional
 
 	// TODO: Create export job
 	now := models.Timestamp(time.Now())
@@ -84,8 +84,8 @@ func (h *GDPRHandler) GetExportRequest(w http.ResponseWriter, r *http.Request) {
 // CreateDeletionRequest handles POST /v1/gdpr/deletion-requests - create deletion request.
 func (h *GDPRHandler) CreateDeletionRequest(w http.ResponseWriter, r *http.Request) {
 	var input models.DeletionRequestCreate
-	// Body is optional
-	_ = json.NewDecoder(r.Body).Decode(&input)
+	// Body is optional, ignore decode errors
+	_ = json.NewDecoder(r.Body).Decode(&input) //nolint:errcheck // body is optional
 
 	// TODO: Create deletion job
 	now := models.Timestamp(time.Now())

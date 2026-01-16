@@ -1,3 +1,4 @@
+// Package main provides the entrypoint for the BreatheRoute API server.
 package main
 
 import (
@@ -15,7 +16,7 @@ import (
 	"github.com/breatheroute/breatheroute/internal/telemetry"
 )
 
-// Version and BuildTime are set at compile time via ldflags
+// Version and BuildTime are set at compile time via ldflags.
 var (
 	Version   = "dev"
 	BuildTime = "unknown"
@@ -69,8 +70,8 @@ func main() {
 	defer func() {
 		shutdownCtx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
 		defer cancel()
-		if err := tp.Shutdown(shutdownCtx); err != nil {
-			log.Error().Err(err).Msg("failed to shutdown telemetry")
+		if shutdownErr := tp.Shutdown(shutdownCtx); shutdownErr != nil {
+			log.Error().Err(shutdownErr).Msg("failed to shutdown telemetry")
 		}
 	}()
 
@@ -83,7 +84,8 @@ func main() {
 	// Initialize metrics
 	metrics, err := middleware.NewMetrics()
 	if err != nil {
-		log.Fatal().Err(err).Msg("failed to initialize metrics")
+		log.Error().Err(err).Msg("failed to initialize metrics")
+		os.Exit(1) //nolint:gocritic // intentional exit, telemetry cleanup is best-effort
 	}
 
 	// Create router with configuration

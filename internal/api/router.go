@@ -30,15 +30,15 @@ func NewRouter(cfg RouterConfig) *chi.Mux {
 	}
 
 	// Global middleware - order matters
-	r.Use(middleware.RequestID)              // Generate/propagate request ID first
-	r.Use(middleware.Tracing(serviceName))   // Distributed tracing
+	r.Use(middleware.RequestID)            // Generate/propagate request ID first
+	r.Use(middleware.Tracing(serviceName)) // Distributed tracing
 	if cfg.Metrics != nil {
-		r.Use(cfg.Metrics.Middleware())      // HTTP metrics
+		r.Use(cfg.Metrics.Middleware()) // HTTP metrics
 	}
-	r.Use(middleware.Logger(cfg.Logger))     // Structured logging
-	r.Use(middleware.Recovery(cfg.Logger))   // Panic recovery
-	r.Use(chimiddleware.RealIP)              // Real IP extraction
-	r.Use(middleware.ContentTypeJSON)        // JSON content type
+	r.Use(middleware.Logger(cfg.Logger))   // Structured logging
+	r.Use(middleware.Recovery(cfg.Logger)) // Panic recovery
+	r.Use(chimiddleware.RealIP)            // Real IP extraction
+	r.Use(middleware.ContentTypeJSON)      // JSON content type
 
 	// Initialize handlers
 	opsHandler := handler.NewOpsHandler(cfg.Version, cfg.BuildTime)

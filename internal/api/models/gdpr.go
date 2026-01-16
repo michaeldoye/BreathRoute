@@ -3,6 +3,7 @@ package models
 // ExportFormat represents the format for data export.
 type ExportFormat string
 
+// Export format values.
 const (
 	ExportFormatJSON ExportFormat = "JSON"
 	ExportFormatZIP  ExportFormat = "ZIP"

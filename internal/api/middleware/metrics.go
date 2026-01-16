@@ -1,6 +1,7 @@
 package middleware
 
 import (
+	"context"
 	"net/http"
 	"strconv"
 	"time"
@@ -186,11 +187,7 @@ func NewProviderMetrics(providerName string) (*ProviderMetrics, error) {
 }
 
 // RecordRequest records metrics for a provider request.
-func (m *ProviderMetrics) RecordRequest(ctx interface {
-	Done() <-chan struct{}
-	Err() error
-	Value(any) any
-}, provider string, operation string, duration time.Duration, err error) {
+func (m *ProviderMetrics) RecordRequest(provider, operation string, duration time.Duration, err error) {
 	attrs := []attribute.KeyValue{
 		attribute.String("provider.name", provider),
 		attribute.String("provider.operation", operation),
@@ -201,24 +198,25 @@ func (m *ProviderMetrics) RecordRequest(ctx interface {
 	}
 
 	// Use background context for metrics to avoid context cancellation issues
-	m.requestDuration.Record(nil, duration.Seconds(), metric.WithAttributes(attrs...))
-	m.requestTotal.Add(nil, 1, metric.WithAttributes(attrs...))
+	ctx := context.TODO()
+	m.requestDuration.Record(ctx, duration.Seconds(), metric.WithAttributes(attrs...))
+	m.requestTotal.Add(ctx, 1, metric.WithAttributes(attrs...))
 }
 
 // RecordCacheHit records a cache hit for a provider.
-func (m *ProviderMetrics) RecordCacheHit(provider string, operation string) {
+func (m *ProviderMetrics) RecordCacheHit(provider, operation string) {
 	attrs := []attribute.KeyValue{
 		attribute.String("provider.name", provider),
 		attribute.String("provider.operation", operation),
 	}
-	m.cacheHitRate.Add(nil, 1, metric.WithAttributes(attrs...))
+	m.cacheHitRate.Add(context.TODO(), 1, metric.WithAttributes(attrs...))
 }
 
 // RecordCacheMiss records a cache miss for a provider.
-func (m *ProviderMetrics) RecordCacheMiss(provider string, operation string) {
+func (m *ProviderMetrics) RecordCacheMiss(provider, operation string) {
 	attrs := []attribute.KeyValue{
 		attribute.String("provider.name", provider),
 		attribute.String("provider.operation", operation),
 	}
-	m.cacheMissRate.Add(nil, 1, metric.WithAttributes(attrs...))
+	m.cacheMissRate.Add(context.TODO(), 1, metric.WithAttributes(attrs...))
 }

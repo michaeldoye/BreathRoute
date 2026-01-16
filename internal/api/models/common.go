@@ -21,6 +21,7 @@ type GeoBox struct {
 // Mode represents a transportation mode.
 type Mode string
 
+// Transportation mode values.
 const (
 	ModeWalk  Mode = "WALK"
 	ModeBike  Mode = "BIKE"
@@ -30,15 +31,17 @@ const (
 // Objective represents a routing objective.
 type Objective string
 
+// Routing objective values.
 const (
-	ObjectiveFastest       Objective = "FASTEST"
+	ObjectiveFastest        Objective = "FASTEST"
 	ObjectiveLowestExposure Objective = "LOWEST_EXPOSURE"
-	ObjectiveBalanced      Objective = "BALANCED"
+	ObjectiveBalanced       Objective = "BALANCED"
 )
 
 // Confidence represents the confidence level of a calculation.
 type Confidence string
 
+// Confidence level values.
 const (
 	ConfidenceLow    Confidence = "LOW"
 	ConfidenceMedium Confidence = "MEDIUM"
@@ -54,6 +57,7 @@ type PagedResponseMeta struct {
 // Pollutant represents a pollutant type.
 type Pollutant string
 
+// Pollutant type values.
 const (
 	PollutantNO2    Pollutant = "NO2"
 	PollutantPM25   Pollutant = "PM25"
@@ -65,6 +69,7 @@ const (
 // PushPlatform represents a push notification platform.
 type PushPlatform string
 
+// Push notification platform values.
 const (
 	PushPlatformFCM  PushPlatform = "FCM"
 	PushPlatformAPNS PushPlatform = "APNS"
@@ -73,6 +78,7 @@ const (
 // HealthStatus represents the health status of a service.
 type HealthStatus string
 
+// Health status values.
 const (
 	HealthStatusOK       HealthStatus = "OK"
 	HealthStatusDegraded HealthStatus = "DEGRADED"
@@ -82,6 +88,7 @@ const (
 // ExportRequestStatus represents the status of an export request.
 type ExportRequestStatus string
 
+// Export request status values.
 const (
 	ExportStatusPending ExportRequestStatus = "PENDING"
 	ExportStatusRunning ExportRequestStatus = "RUNNING"
@@ -93,6 +100,7 @@ const (
 // DeletionRequestStatus represents the status of a deletion request.
 type DeletionRequestStatus string
 
+// Deletion request status values.
 const (
 	DeletionStatusPending   DeletionRequestStatus = "PENDING"
 	DeletionStatusScheduled DeletionRequestStatus = "SCHEDULED"
@@ -104,14 +112,16 @@ const (
 // AlertThresholdType represents the type of alert threshold.
 type AlertThresholdType string
 
+// Alert threshold type values.
 const (
-	ThresholdAbsoluteScore       AlertThresholdType = "ABSOLUTE_SCORE"
+	ThresholdAbsoluteScore            AlertThresholdType = "ABSOLUTE_SCORE"
 	ThresholdPercentWorseThanBaseline AlertThresholdType = "PERCENT_WORSE_THAN_BASELINE"
 )
 
 // TransitAlertSeverity represents the severity of a transit alert.
 type TransitAlertSeverity string
 
+// Transit alert severity values.
 const (
 	SeverityInfo    TransitAlertSeverity = "INFO"
 	SeverityWarning TransitAlertSeverity = "WARNING"

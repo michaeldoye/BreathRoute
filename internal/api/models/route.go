@@ -9,16 +9,16 @@ type ClientContext struct {
 
 // RouteComputeRequest is the request body for computing routes.
 type RouteComputeRequest struct {
-	CommuteID              *string        `json:"commuteId,omitempty"`
-	Origin                 *Point         `json:"origin,omitempty"`
-	Destination            *Point         `json:"destination,omitempty"`
-	DepartureTime          string         `json:"departureTime" validate:"required"`
-	Modes                  []Mode         `json:"modes,omitempty"`
-	Objective              Objective      `json:"objective" validate:"required,oneof=FASTEST LOWEST_EXPOSURE BALANCED"`
-	MaxOptions             *int           `json:"maxOptions,omitempty" validate:"omitempty,gte=1,lte=10"`
-	ProfileOverride        *ProfileInput  `json:"profileOverride,omitempty"`
-	IncludeExplainability  *bool          `json:"includeExplainability,omitempty"`
-	ClientContext          *ClientContext `json:"clientContext,omitempty"`
+	CommuteID             *string        `json:"commuteId,omitempty"`
+	Origin                *Point         `json:"origin,omitempty"`
+	Destination           *Point         `json:"destination,omitempty"`
+	DepartureTime         string         `json:"departureTime" validate:"required"`
+	Modes                 []Mode         `json:"modes,omitempty"`
+	Objective             Objective      `json:"objective" validate:"required,oneof=FASTEST LOWEST_EXPOSURE BALANCED"`
+	MaxOptions            *int           `json:"maxOptions,omitempty" validate:"omitempty,gte=1,lte=10"`
+	ProfileOverride       *ProfileInput  `json:"profileOverride,omitempty"`
+	IncludeExplainability *bool          `json:"includeExplainability,omitempty"`
+	ClientContext         *ClientContext `json:"clientContext,omitempty"`
 }
 
 // RouteComputeResponse is the response for route computation.
@@ -106,8 +106,8 @@ type Instruction struct {
 
 // ExposureBreakdown provides per-factor exposure contributions.
 type ExposureBreakdown struct {
-	Normalized *NormalizedExposure   `json:"normalized,omitempty"`
-	Raw        *ExposureRawAverages  `json:"raw,omitempty"`
+	Normalized *NormalizedExposure  `json:"normalized,omitempty"`
+	Raw        *ExposureRawAverages `json:"raw,omitempty"`
 }
 
 // NormalizedExposure contains normalized exposure values.

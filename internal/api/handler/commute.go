@@ -36,10 +36,10 @@ func (h *CommuteHandler) ListCommutes(w http.ResponseWriter, r *http.Request) {
 				Destination: models.CommuteLocation{
 					Point: models.Point{Lat: 52.308056, Lon: 4.763889},
 				},
-				DaysOfWeek:               []int{1, 2, 3, 4, 5},
+				DaysOfWeek:                []int{1, 2, 3, 4, 5},
 				PreferredArrivalTimeLocal: "09:00",
-				CreatedAt:                now,
-				UpdatedAt:                now,
+				CreatedAt:                 now,
+				UpdatedAt:                 now,
 			},
 		},
 		Meta: models.PagedResponseMeta{
@@ -63,15 +63,15 @@ func (h *CommuteHandler) CreateCommute(w http.ResponseWriter, r *http.Request) {
 	now := models.Timestamp(time.Now())
 	commuteID := "cmt_" + uuid.New().String()[:22]
 	commute := models.Commute{
-		ID:                       commuteID,
-		Label:                    input.Label,
-		Origin:                   input.Origin,
-		Destination:              input.Destination,
-		DaysOfWeek:               input.DaysOfWeek,
+		ID:                        commuteID,
+		Label:                     input.Label,
+		Origin:                    input.Origin,
+		Destination:               input.Destination,
+		DaysOfWeek:                input.DaysOfWeek,
 		PreferredArrivalTimeLocal: input.PreferredArrivalTimeLocal,
-		Notes:                    input.Notes,
-		CreatedAt:                now,
-		UpdatedAt:                now,
+		Notes:                     input.Notes,
+		CreatedAt:                 now,
+		UpdatedAt:                 now,
 	}
 
 	location := fmt.Sprintf("/v1/me/commutes/%s", commuteID)
@@ -97,10 +97,10 @@ func (h *CommuteHandler) GetCommute(w http.ResponseWriter, r *http.Request) {
 		Destination: models.CommuteLocation{
 			Point: models.Point{Lat: 52.308056, Lon: 4.763889},
 		},
-		DaysOfWeek:               []int{1, 2, 3, 4, 5},
+		DaysOfWeek:                []int{1, 2, 3, 4, 5},
 		PreferredArrivalTimeLocal: "09:00",
-		CreatedAt:                now,
-		UpdatedAt:                now,
+		CreatedAt:                 now,
+		UpdatedAt:                 now,
 	}
 	response.JSON(w, http.StatusOK, commute)
 }
@@ -132,10 +132,10 @@ func (h *CommuteHandler) UpdateCommute(w http.ResponseWriter, r *http.Request) {
 		Destination: models.CommuteLocation{
 			Point: models.Point{Lat: 52.308056, Lon: 4.763889},
 		},
-		DaysOfWeek:               []int{1, 2, 3, 4, 5},
+		DaysOfWeek:                []int{1, 2, 3, 4, 5},
 		PreferredArrivalTimeLocal: "09:00",
-		CreatedAt:                now,
-		UpdatedAt:                now,
+		CreatedAt:                 now,
+		UpdatedAt:                 now,
 	}
 
 	if input.Label != nil {

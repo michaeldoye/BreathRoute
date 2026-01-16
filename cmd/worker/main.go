@@ -1,3 +1,4 @@
+// Package main provides the entrypoint for the BreatheRoute background worker.
 package main
 
 import (
@@ -10,7 +11,7 @@ import (
 	"time"
 )
 
-// Version and BuildTime are set at compile time via ldflags
+// Version and BuildTime are set at compile time via ldflags.
 var (
 	Version   = "dev"
 	BuildTime = "unknown"
@@ -34,10 +35,10 @@ func main() {
 	mux := http.NewServeMux()
 
 	// Health check endpoint
-	mux.HandleFunc("/health", func(w http.ResponseWriter, r *http.Request) {
+	mux.HandleFunc("/health", func(w http.ResponseWriter, _ *http.Request) {
 		w.Header().Set("Content-Type", "application/json")
 		w.WriteHeader(http.StatusOK)
-		fmt.Fprintf(w, `{"status":"healthy","version":"%s"}`, Version)
+		_, _ = fmt.Fprintf(w, `{"status":"healthy","version":"%s"}`, Version) //nolint:errcheck // response write
 	})
 
 	server := &http.Server{
@@ -64,7 +65,7 @@ func main() {
 		for {
 			select {
 			case <-ctx.Done():
-				fmt.Println("Worker context cancelled")
+				fmt.Println("Worker context canceled")
 				return
 			case <-ticker.C:
 				fmt.Println("Worker heartbeat...")

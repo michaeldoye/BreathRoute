@@ -76,7 +76,7 @@ func Init(ctx context.Context, cfg Config) (*Provider, error) {
 	// Initialize meter provider
 	meterProvider, err := initMeterProvider(ctx, cfg, res)
 	if err != nil {
-		_ = tracerProvider.Shutdown(ctx)
+		_ = tracerProvider.Shutdown(ctx) //nolint:errcheck // best effort cleanup
 		return nil, err
 	}
 

@@ -39,13 +39,13 @@ type FieldError struct {
 
 // ProblemType constants for standard error types.
 const (
-	ProblemTypeValidation     = "https://api.breatheroute.nl/problems/validation-error"
-	ProblemTypeUnauthorized   = "https://api.breatheroute.nl/problems/unauthorized"
-	ProblemTypeNotFound       = "https://api.breatheroute.nl/problems/not-found"
-	ProblemTypeConflict       = "https://api.breatheroute.nl/problems/conflict"
+	ProblemTypeValidation      = "https://api.breatheroute.nl/problems/validation-error"
+	ProblemTypeUnauthorized    = "https://api.breatheroute.nl/problems/unauthorized"
+	ProblemTypeNotFound        = "https://api.breatheroute.nl/problems/not-found"
+	ProblemTypeConflict        = "https://api.breatheroute.nl/problems/conflict"
 	ProblemTypeTooManyRequests = "https://api.breatheroute.nl/problems/too-many-requests"
-	ProblemTypeInternal       = "https://api.breatheroute.nl/problems/internal-error"
-	ProblemTypeUnavailable    = "https://api.breatheroute.nl/problems/service-unavailable"
+	ProblemTypeInternal        = "https://api.breatheroute.nl/problems/internal-error"
+	ProblemTypeUnavailable     = "https://api.breatheroute.nl/problems/service-unavailable"
 )
 
 // NewProblem creates a new Problem with the given parameters.
@@ -81,7 +81,7 @@ func (p *Problem) Write(w http.ResponseWriter) {
 	w.Header().Set("Content-Type", "application/problem+json")
 	w.Header().Set("X-Request-Id", p.TraceID)
 	w.WriteHeader(p.Status)
-	_ = json.NewEncoder(w).Encode(p)
+	_ = json.NewEncoder(w).Encode(p) //nolint:errcheck // response already started
 }
 
 // NewBadRequest creates a 400 Bad Request problem.
