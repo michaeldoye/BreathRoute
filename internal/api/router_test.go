@@ -7,6 +7,7 @@ import (
 	"net/http"
 	"net/http/httptest"
 	"testing"
+	"time"
 
 	"github.com/rs/zerolog"
 	"github.com/stretchr/testify/assert"
@@ -14,15 +15,73 @@ import (
 
 	"github.com/breatheroute/breatheroute/internal/api"
 	"github.com/breatheroute/breatheroute/internal/api/models"
+	"github.com/breatheroute/breatheroute/internal/auth"
 )
+
+// testAuthService creates an auth service for testing.
+func testAuthService() *auth.Service {
+	siwaVerifier := auth.NewSIWAVerifier(auth.SIWAConfig{
+		BundleID: "nl.breatheroute.app",
+	})
+
+	jwtService := auth.NewJWTService(auth.JWTConfig{
+		SigningKey: "test-secret-key-for-testing-only",
+		Issuer:     "https://api.breatheroute.nl",
+		Audience:   "breatheroute-api",
+	})
+
+	userRepo := auth.NewInMemoryUserRepository()
+	refreshRepo := auth.NewInMemoryRefreshTokenRepository()
+
+	return auth.NewService(auth.ServiceConfig{
+		SIWAVerifier:  siwaVerifier,
+		JWTService:    jwtService,
+		UserRepo:      userRepo,
+		RefreshRepo:   refreshRepo,
+		DefaultLocale: "nl-NL",
+	})
+}
+
+// testJWTService creates a JWT service for generating test tokens.
+func testJWTService() *auth.JWTService {
+	return auth.NewJWTService(auth.JWTConfig{
+		SigningKey: "test-secret-key-for-testing-only",
+		Issuer:     "https://api.breatheroute.nl",
+		Audience:   "breatheroute-api",
+	})
+}
+
+// generateTestToken generates a valid test token for a user.
+func generateTestToken(t *testing.T) string {
+	t.Helper()
+	jwtService := testJWTService()
+	user := &auth.User{
+		ID:        "usr_testuser123",
+		AppleSub:  "apple.123",
+		Locale:    "nl-NL",
+		CreatedAt: time.Now(),
+		UpdatedAt: time.Now(),
+	}
+	token, _, err := jwtService.GenerateAccessToken(user)
+	require.NoError(t, err)
+	return token
+}
 
 func newTestRouter() http.Handler {
 	logger := zerolog.New(io.Discard)
 	return api.NewRouter(api.RouterConfig{
-		Version:   "test",
-		BuildTime: "2024-01-01T00:00:00Z",
-		Logger:    logger,
+		Version:     "test",
+		BuildTime:   "2024-01-01T00:00:00Z",
+		Logger:      logger,
+		AuthService: testAuthService(),
 	})
+}
+
+// addAuthHeader adds a valid Bearer token to the request.
+func addAuthHeader(t *testing.T, req *http.Request) {
+	t.Helper()
+	token := generateTestToken(t)
+	req.Header.Set("Authorization", "Bearer "+token)
 }
 
 func TestRouter_HealthCheck(t *testing.T) {
@@ -66,6 +125,7 @@ func TestRouter_SystemStatus(t *testing.T) {
 	router := newTestRouter()
 
 	req := httptest.NewRequest(http.MethodGet, "/v1/ops/status", http.NoBody)
+	addAuthHeader(t, req)
 	w := httptest.NewRecorder()
 
 	router.ServeHTTP(w, req)
@@ -85,6 +145,7 @@ func TestRouter_GetMe(t *testing.T) {
 	router := newTestRouter()
 
 	req := httptest.NewRequest(http.MethodGet, "/v1/me", http.NoBody)
+	addAuthHeader(t, req)
 	w := httptest.NewRecorder()
 
 	router.ServeHTTP(w, req)
@@ -103,6 +164,7 @@ func TestRouter_GetProfile(t *testing.T) {
 	router := newTestRouter()
 
 	req := httptest.NewRequest(http.MethodGet, "/v1/me/profile", http.NoBody)
+	addAuthHeader(t, req)
 	w := httptest.NewRecorder()
 
 	router.ServeHTTP(w, req)
@@ -134,6 +196,7 @@ func TestRouter_UpsertProfile(t *testing.T) {
 
 	req := httptest.NewRequest(http.MethodPut, "/v1/me/profile", bytes.NewReader(body))
 	req.Header.Set("Content-Type", "application/json")
+	addAuthHeader(t, req)
 	w := httptest.NewRecorder()
 
 	router.ServeHTTP(w, req)
@@ -152,6 +215,7 @@ func TestRouter_ListCommutes(t *testing.T) {
 	router := newTestRouter()
 
 	req := httptest.NewRequest(http.MethodGet, "/v1/me/commutes", http.NoBody)
+	addAuthHeader(t, req)
 	w := httptest.NewRecorder()
 
 	router.ServeHTTP(w, req)
@@ -184,6 +248,7 @@ func TestRouter_CreateCommute(t *testing.T) {
 
 	req := httptest.NewRequest(http.MethodPost, "/v1/me/commutes", bytes.NewReader(body))
 	req.Header.Set("Content-Type", "application/json")
+	addAuthHeader(t, req)
 	w := httptest.NewRecorder()
 
 	router.ServeHTTP(w, req)
@@ -203,6 +268,7 @@ func TestRouter_GetCommute(t *testing.T) {
 	router := newTestRouter()
 
 	req := httptest.NewRequest(http.MethodGet, "/v1/me/commutes/cmt_test123", http.NoBody)
+	addAuthHeader(t, req)
 	w := httptest.NewRecorder()
 
 	router.ServeHTTP(w, req)
@@ -220,6 +286,7 @@ func TestRouter_DeleteCommute(t *testing.T) {
 	router := newTestRouter()
 
 	req := httptest.NewRequest(http.MethodDelete, "/v1/me/commutes/cmt_test123", http.NoBody)
+	addAuthHeader(t, req)
 	w := httptest.NewRecorder()
 
 	router.ServeHTTP(w, req)
@@ -311,6 +378,7 @@ func TestRouter_ListDevices(t *testing.T) {
 	router := newTestRouter()
 
 	req := httptest.NewRequest(http.MethodGet, "/v1/me/devices", http.NoBody)
+	addAuthHeader(t, req)
 	w := httptest.NewRecorder()
 
 	router.ServeHTTP(w, req)
@@ -336,6 +404,7 @@ func TestRouter_RegisterDevice(t *testing.T) {
 
 	req := httptest.NewRequest(http.MethodPost, "/v1/me/devices", bytes.NewReader(body))
 	req.Header.Set("Content-Type", "application/json")
+	addAuthHeader(t, req)
 	w := httptest.NewRecorder()
 
 	router.ServeHTTP(w, req)
@@ -394,6 +463,7 @@ func TestRouter_GDPR_ExportRequest(t *testing.T) {
 
 	// Create export request
 	req := httptest.NewRequest(http.MethodPost, "/v1/gdpr/export-requests", http.NoBody)
+	addAuthHeader(t, req)
 	w := httptest.NewRecorder()
 
 	router.ServeHTTP(w, req)
@@ -414,6 +484,7 @@ func TestRouter_GDPR_DeletionRequest(t *testing.T) {
 
 	// Create deletion request
 	req := httptest.NewRequest(http.MethodPost, "/v1/gdpr/deletion-requests", http.NoBody)
+	addAuthHeader(t, req)
 	w := httptest.NewRecorder()
 
 	router.ServeHTTP(w, req)
