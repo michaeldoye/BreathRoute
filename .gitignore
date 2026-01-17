@@ -69,3 +69,4 @@ service-account*.json
 .claude
 infrastructure/environments/prod/terraform.tfvars
 infrastructure/environments/staging/terraform.tfvars
+CLAUDE.md
