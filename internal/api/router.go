@@ -9,18 +9,20 @@ import (
 	"github.com/breatheroute/breatheroute/internal/api/handler"
 	"github.com/breatheroute/breatheroute/internal/api/middleware"
 	"github.com/breatheroute/breatheroute/internal/auth"
+	"github.com/breatheroute/breatheroute/internal/featureflags"
 	"github.com/breatheroute/breatheroute/internal/user"
 )
 
 // RouterConfig holds configuration for the router.
 type RouterConfig struct {
-	Version     string
-	BuildTime   string
-	Logger      zerolog.Logger
-	ServiceName string
-	Metrics     *middleware.Metrics
-	AuthService *auth.Service
-	UserService *user.Service
+	Version            string
+	BuildTime          string
+	Logger             zerolog.Logger
+	ServiceName        string
+	Metrics            *middleware.Metrics
+	AuthService        *auth.Service
+	UserService        *user.Service
+	FeatureFlagService *featureflags.Service
 }
 
 // NewRouter creates a new chi router with all API routes configured.
@@ -57,6 +59,7 @@ func NewRouter(cfg RouterConfig) *chi.Mux {
 	deviceHandler := handler.NewDeviceHandler()
 	gdprHandler := handler.NewGDPRHandler()
 	metadataHandler := handler.NewMetadataHandler()
+	featureFlagsHandler := handler.NewFeatureFlagsHandler(cfg.FeatureFlagService)
 
 	// Create auth middleware
 	authMiddleware := middleware.Auth(cfg.AuthService)
@@ -157,6 +160,19 @@ func NewRouter(cfg RouterConfig) *chi.Mux {
 				r.Get("/", gdprHandler.ListDeletionRequests)
 				r.Post("/", gdprHandler.CreateDeletionRequest)
 				r.Get("/{deletionRequestId}", gdprHandler.GetDeletionRequest)
+			})
+		})
+
+		// Admin endpoints (authenticated) - for internal operations
+		r.Route("/admin", func(r chi.Router) {
+			r.Use(authMiddleware)
+			r.Use(standardRateLimit)
+
+			// Feature flags management
+			r.Route("/feature-flags", func(r chi.Router) {
+				r.Get("/", featureFlagsHandler.ListFeatureFlags)
+				r.Put("/", featureFlagsHandler.UpsertFeatureFlags)
+				r.Post("/invalidate", featureFlagsHandler.InvalidateCache)
 			})
 		})
 	})
