@@ -39,7 +39,7 @@ func (h *MeHandler) GetMe(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	response.JSON(w, r, http.StatusOK, me)
+	response.JSON(w, http.StatusOK, me)
 }
 
 // UpdateMe handles PUT /v1/me - update current user settings.
@@ -76,7 +76,7 @@ func (h *MeHandler) UpdateMe(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	response.JSON(w, r, http.StatusOK, me)
+	response.JSON(w, http.StatusOK, me)
 }
 
 // GetConsents handles GET /v1/me/consents - get consent states.
@@ -97,7 +97,7 @@ func (h *MeHandler) GetConsents(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	response.JSON(w, r, http.StatusOK, consents)
+	response.JSON(w, http.StatusOK, consents)
 }
 
 // UpdateConsents handles PUT /v1/me/consents - update consent states.
@@ -124,5 +124,5 @@ func (h *MeHandler) UpdateConsents(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	response.JSON(w, r, http.StatusOK, consents)
+	response.JSON(w, http.StatusOK, consents)
 }

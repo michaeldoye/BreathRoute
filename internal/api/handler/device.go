@@ -21,7 +21,7 @@ func NewDeviceHandler() *DeviceHandler {
 }
 
 // ListDevices handles GET /v1/me/devices - list registered devices.
-func (h *DeviceHandler) ListDevices(w http.ResponseWriter, r *http.Request) {
+func (h *DeviceHandler) ListDevices(w http.ResponseWriter, _ *http.Request) {
 	// TODO: Get actual devices from database
 	now := models.Timestamp(time.Now())
 	devices := models.PagedDevices{
@@ -41,7 +41,7 @@ func (h *DeviceHandler) ListDevices(w http.ResponseWriter, r *http.Request) {
 			Limit: 50,
 		},
 	}
-	response.JSON(w, r, http.StatusOK, devices)
+	response.JSON(w, http.StatusOK, devices)
 }
 
 // RegisterDevice handles POST /v1/me/devices - register or update device.
@@ -75,7 +75,7 @@ func (h *DeviceHandler) RegisterDevice(w http.ResponseWriter, r *http.Request) {
 
 	// TODO: Check if device already exists to return 200 vs 201
 	location := fmt.Sprintf("/v1/me/devices/%s", input.DeviceID)
-	response.Created(w, r, location, device)
+	response.Created(w, location, device)
 }
 
 // UnregisterDevice handles DELETE /v1/me/devices/{deviceId} - unregister device.
@@ -87,5 +87,5 @@ func (h *DeviceHandler) UnregisterDevice(w http.ResponseWriter, r *http.Request)
 	}
 
 	// TODO: Delete device from database
-	response.NoContent(w, r)
+	response.NoContent(w)
 }
