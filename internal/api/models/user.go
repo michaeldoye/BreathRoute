@@ -8,6 +8,24 @@ const (
 	UnitsImperial Units = "IMPERIAL"
 )
 
+// TransportMode represents the user's preferred transport mode.
+type TransportMode string
+
+const (
+	TransportModeBike    TransportMode = "BIKE"
+	TransportModeWalk    TransportMode = "WALK"
+	TransportModeTransit TransportMode = "TRANSIT"
+)
+
+// ExposureSensitivity represents the user's sensitivity to air quality exposure.
+type ExposureSensitivity string
+
+const (
+	ExposureSensitivityLow    ExposureSensitivity = "LOW"
+	ExposureSensitivityMedium ExposureSensitivity = "MEDIUM"
+	ExposureSensitivityHigh   ExposureSensitivity = "HIGH"
+)
+
 // Me represents the authenticated user's account summary.
 type Me struct {
 	UserID    string    `json:"userId"`
@@ -39,16 +57,20 @@ type ConsentsInput struct {
 
 // Profile represents the user's sensitivity profile.
 type Profile struct {
-	Weights     ExposureWeights  `json:"weights"`
-	Constraints RouteConstraints `json:"constraints"`
-	CreatedAt   Timestamp        `json:"createdAt"`
-	UpdatedAt   Timestamp        `json:"updatedAt"`
+	Weights             ExposureWeights     `json:"weights"`
+	Constraints         RouteConstraints    `json:"constraints"`
+	PreferredMode       TransportMode       `json:"preferredMode"`
+	ExposureSensitivity ExposureSensitivity `json:"exposureSensitivity"`
+	CreatedAt           Timestamp           `json:"createdAt"`
+	UpdatedAt           Timestamp           `json:"updatedAt"`
 }
 
 // ProfileInput is the request body for creating or updating a profile.
 type ProfileInput struct {
-	Weights     ExposureWeights  `json:"weights" validate:"required"`
-	Constraints RouteConstraints `json:"constraints" validate:"required"`
+	Weights             ExposureWeights      `json:"weights" validate:"required"`
+	Constraints         RouteConstraints     `json:"constraints" validate:"required"`
+	PreferredMode       *TransportMode       `json:"preferredMode,omitempty" validate:"omitempty,oneof=BIKE WALK TRANSIT"`
+	ExposureSensitivity *ExposureSensitivity `json:"exposureSensitivity,omitempty" validate:"omitempty,oneof=LOW MEDIUM HIGH"`
 }
 
 // ExposureWeights represents the relative importance of pollutant factors.
