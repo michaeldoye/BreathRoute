@@ -9,6 +9,7 @@ import (
 	"github.com/breatheroute/breatheroute/internal/api/handler"
 	"github.com/breatheroute/breatheroute/internal/api/middleware"
 	"github.com/breatheroute/breatheroute/internal/auth"
+	"github.com/breatheroute/breatheroute/internal/user"
 )
 
 // RouterConfig holds configuration for the router.
@@ -19,6 +20,7 @@ type RouterConfig struct {
 	ServiceName string
 	Metrics     *middleware.Metrics
 	AuthService *auth.Service
+	UserService *user.Service
 }
 
 // NewRouter creates a new chi router with all API routes configured.
@@ -45,8 +47,8 @@ func NewRouter(cfg RouterConfig) *chi.Mux {
 	// Initialize handlers
 	opsHandler := handler.NewOpsHandler(cfg.Version, cfg.BuildTime)
 	authHandler := handler.NewAuthHandler(cfg.AuthService)
-	meHandler := handler.NewMeHandler()
-	profileHandler := handler.NewProfileHandler()
+	meHandler := handler.NewMeHandler(cfg.UserService)
+	profileHandler := handler.NewProfileHandler(cfg.UserService)
 	commuteHandler := handler.NewCommuteHandler()
 	routeHandler := handler.NewRouteHandler()
 	alertHandler := handler.NewAlertHandler()
@@ -86,6 +88,7 @@ func NewRouter(cfg RouterConfig) *chi.Mux {
 		r.Route("/me", func(r chi.Router) {
 			r.Use(authMiddleware)
 			r.Get("/", meHandler.GetMe)
+			r.Put("/", meHandler.UpdateMe)
 
 			// Consents
 			r.Get("/consents", meHandler.GetConsents)

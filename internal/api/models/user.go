@@ -1,10 +1,25 @@
 package models
 
+// Units represents the user's preferred unit system.
+type Units string
+
+const (
+	UnitsMetric   Units = "METRIC"
+	UnitsImperial Units = "IMPERIAL"
+)
+
 // Me represents the authenticated user's account summary.
 type Me struct {
 	UserID    string    `json:"userId"`
 	Locale    string    `json:"locale"`
+	Units     Units     `json:"units"`
 	CreatedAt Timestamp `json:"createdAt"`
+}
+
+// MeInput is the request body for updating user settings.
+type MeInput struct {
+	Locale *string `json:"locale,omitempty" validate:"omitempty,bcp47_language_tag"`
+	Units  *Units  `json:"units,omitempty" validate:"omitempty,oneof=METRIC IMPERIAL"`
 }
 
 // Consents represents the user's consent states.

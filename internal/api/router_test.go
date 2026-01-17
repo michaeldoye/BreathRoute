@@ -2,6 +2,7 @@ package api_test
 
 import (
 	"bytes"
+	"context"
 	"encoding/json"
 	"io"
 	"net/http"
@@ -16,6 +17,7 @@ import (
 	"github.com/breatheroute/breatheroute/internal/api"
 	"github.com/breatheroute/breatheroute/internal/api/models"
 	"github.com/breatheroute/breatheroute/internal/auth"
+	"github.com/breatheroute/breatheroute/internal/user"
 )
 
 // testAuthService creates an auth service for testing.
@@ -67,6 +69,15 @@ func generateTestToken(t *testing.T) string {
 	return token
 }
 
+// testUserService creates a user service for testing with a pre-created test user.
+func testUserService() *user.Service {
+	repo := user.NewInMemoryRepository()
+	svc := user.NewService(repo)
+	// Create the test user that matches the token
+	_, _ = svc.CreateUser(context.Background(), "usr_testuser123", "nl-NL")
+	return svc
+}
+
 func newTestRouter() http.Handler {
 	logger := zerolog.New(io.Discard)
 	return api.NewRouter(api.RouterConfig{
@@ -74,6 +85,7 @@ func newTestRouter() http.Handler {
 		BuildTime:   "2024-01-01T00:00:00Z",
 		Logger:      logger,
 		AuthService: testAuthService(),
+		UserService: testUserService(),
 	})
 }
 
