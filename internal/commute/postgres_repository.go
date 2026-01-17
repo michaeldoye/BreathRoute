@@ -25,7 +25,7 @@ func (r *PostgresRepository) Get(ctx context.Context, id string) (*Commute, erro
 			id, user_id, label,
 			origin_lat, origin_lon, origin_geohash,
 			destination_lat, destination_lon, destination_geohash,
-			days_of_week, preferred_arrival_time_local, notes,
+			days_of_week, preferred_arrival_time_local, timezone, notes,
 			created_at, updated_at
 		FROM commutes
 		WHERE id = $1
@@ -41,7 +41,7 @@ func (r *PostgresRepository) GetByUserAndID(ctx context.Context, userID, commute
 			id, user_id, label,
 			origin_lat, origin_lon, origin_geohash,
 			destination_lat, destination_lon, destination_geohash,
-			days_of_week, preferred_arrival_time_local, notes,
+			days_of_week, preferred_arrival_time_local, timezone, notes,
 			created_at, updated_at
 		FROM commutes
 		WHERE id = $1 AND user_id = $2
@@ -66,6 +66,7 @@ func (r *PostgresRepository) scanCommute(ctx context.Context, query string, args
 		&commute.Destination.Geohash,
 		&commute.DaysOfWeek,
 		&commute.PreferredArrivalTimeLocal,
+		&commute.Timezone,
 		&commute.Notes,
 		&commute.CreatedAt,
 		&commute.UpdatedAt,
@@ -94,7 +95,7 @@ func (r *PostgresRepository) List(ctx context.Context, userID string, opts ListO
 			id, user_id, label,
 			origin_lat, origin_lon, origin_geohash,
 			destination_lat, destination_lon, destination_geohash,
-			days_of_week, preferred_arrival_time_local, notes,
+			days_of_week, preferred_arrival_time_local, timezone, notes,
 			created_at, updated_at
 		FROM commutes
 		WHERE user_id = $1
@@ -123,6 +124,7 @@ func (r *PostgresRepository) List(ctx context.Context, userID string, opts ListO
 			&commute.Destination.Geohash,
 			&commute.DaysOfWeek,
 			&commute.PreferredArrivalTimeLocal,
+			&commute.Timezone,
 			&commute.Notes,
 			&commute.CreatedAt,
 			&commute.UpdatedAt,
@@ -158,9 +160,9 @@ func (r *PostgresRepository) Create(ctx context.Context, commute *Commute) error
 			id, user_id, label,
 			origin_lat, origin_lon, origin_geohash,
 			destination_lat, destination_lon, destination_geohash,
-			days_of_week, preferred_arrival_time_local, notes,
+			days_of_week, preferred_arrival_time_local, timezone, notes,
 			created_at, updated_at
-		) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14)
+		) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15)
 	`
 
 	_, err := r.pool.Exec(ctx, query,
@@ -175,6 +177,7 @@ func (r *PostgresRepository) Create(ctx context.Context, commute *Commute) error
 		commute.Destination.Geohash,
 		commute.DaysOfWeek,
 		commute.PreferredArrivalTimeLocal,
+		commute.Timezone,
 		commute.Notes,
 		commute.CreatedAt,
 		commute.UpdatedAt,
@@ -195,8 +198,9 @@ func (r *PostgresRepository) Update(ctx context.Context, commute *Commute) error
 			destination_geohash = $8,
 			days_of_week = $9,
 			preferred_arrival_time_local = $10,
-			notes = $11,
-			updated_at = $12
+			timezone = $11,
+			notes = $12,
+			updated_at = $13
 		WHERE id = $1
 	`
 
@@ -211,6 +215,7 @@ func (r *PostgresRepository) Update(ctx context.Context, commute *Commute) error
 		commute.Destination.Geohash,
 		commute.DaysOfWeek,
 		commute.PreferredArrivalTimeLocal,
+		commute.Timezone,
 		commute.Notes,
 		commute.UpdatedAt,
 	)

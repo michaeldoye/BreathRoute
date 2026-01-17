@@ -18,9 +18,21 @@ var (
 
 // Validation constants.
 const (
-	MaxLabelLength = 80
-	MaxNotesLength = 500
+	MaxLabelLength  = 80
+	MaxNotesLength  = 500
+	DefaultTimezone = "Europe/Amsterdam"
 )
+
+// dayNames maps ISO weekday numbers (1=Monday, 7=Sunday) to day names.
+var dayNames = map[int]string{
+	1: "Monday",
+	2: "Tuesday",
+	3: "Wednesday",
+	4: "Thursday",
+	5: "Friday",
+	6: "Saturday",
+	7: "Sunday",
+}
 
 // timeHHMMRegex validates HH:mm format.
 var timeHHMMRegex = regexp.MustCompile(`^([01]?\d|2[0-3]):[0-5]\d$`)
@@ -82,6 +94,12 @@ func (s *Service) Create(ctx context.Context, userID string, input *models.Commu
 		return nil, &ValidationError{Errors: fieldErrors}
 	}
 
+	// Determine timezone (use default if not provided)
+	timezone := DefaultTimezone
+	if input.Timezone != nil && *input.Timezone != "" {
+		timezone = *input.Timezone
+	}
+
 	now := time.Now()
 	commuteID := "cmt_" + uuid.New().String()[:22]
 
@@ -99,6 +117,7 @@ func (s *Service) Create(ctx context.Context, userID string, input *models.Commu
 		},
 		DaysOfWeek:                input.DaysOfWeek,
 		PreferredArrivalTimeLocal: input.PreferredArrivalTimeLocal,
+		Timezone:                  timezone,
 		Notes:                     input.Notes,
 		CreatedAt:                 now,
 		UpdatedAt:                 now,
@@ -149,6 +168,9 @@ func (s *Service) Update(ctx context.Context, userID, commuteID string, input *m
 	}
 	if input.PreferredArrivalTimeLocal != nil {
 		commute.PreferredArrivalTimeLocal = *input.PreferredArrivalTimeLocal
+	}
+	if input.Timezone != nil {
+		commute.Timezone = *input.Timezone
 	}
 	if input.Notes != nil {
 		commute.Notes = input.Notes
@@ -204,6 +226,13 @@ func (s *Service) validateCreateInput(input *models.CommuteCreateRequest) []mode
 		errs = append(errs, models.FieldError{Field: "preferredArrivalTimeLocal", Message: "must be in HH:mm format"})
 	}
 
+	// Validate timezone (optional)
+	if input.Timezone != nil && *input.Timezone != "" {
+		if _, err := time.LoadLocation(*input.Timezone); err != nil {
+			errs = append(errs, models.FieldError{Field: "timezone", Message: "must be a valid IANA timezone identifier"})
+		}
+	}
+
 	// Validate notes (optional)
 	if input.Notes != nil && len(*input.Notes) > MaxNotesLength {
 		errs = append(errs, models.FieldError{Field: "notes", Message: "must be at most 500 characters"})
@@ -239,6 +268,13 @@ func (s *Service) validateUpdateInput(input *models.CommuteUpdateRequest) []mode
 	// Validate preferred arrival time (optional)
 	if input.PreferredArrivalTimeLocal != nil {
 		errs = append(errs, s.validateOptionalArrivalTime(*input.PreferredArrivalTimeLocal)...)
+	}
+
+	// Validate timezone (optional)
+	if input.Timezone != nil && *input.Timezone != "" {
+		if _, err := time.LoadLocation(*input.Timezone); err != nil {
+			errs = append(errs, models.FieldError{Field: "timezone", Message: "must be a valid IANA timezone identifier"})
+		}
 	}
 
 	// Validate notes (optional)
@@ -310,6 +346,8 @@ func (s *Service) validateLocation(loc *models.CommuteLocation, prefix string) [
 
 // toAPICommute converts a domain Commute to an API Commute.
 func (s *Service) toAPICommute(c *Commute) models.Commute {
+	schedule := s.buildSchedule(c)
+
 	return models.Commute{
 		ID:    c.ID,
 		Label: c.Label,
@@ -321,12 +359,119 @@ func (s *Service) toAPICommute(c *Commute) models.Commute {
 			Point:   models.Point{Lat: c.Destination.Point.Lat, Lon: c.Destination.Point.Lon},
 			Geohash: c.Destination.Geohash,
 		},
-		DaysOfWeek:                c.DaysOfWeek,
-		PreferredArrivalTimeLocal: c.PreferredArrivalTimeLocal,
-		Notes:                     c.Notes,
-		CreatedAt:                 models.Timestamp(c.CreatedAt),
-		UpdatedAt:                 models.Timestamp(c.UpdatedAt),
+		Schedule:  schedule,
+		Notes:     c.Notes,
+		CreatedAt: models.Timestamp(c.CreatedAt),
+		UpdatedAt: models.Timestamp(c.UpdatedAt),
 	}
+}
+
+// buildSchedule builds a normalized CommuteSchedule from domain data.
+func (s *Service) buildSchedule(c *Commute) models.CommuteSchedule {
+	// Build day names from day numbers
+	names := make([]string, 0, len(c.DaysOfWeek))
+	for _, day := range c.DaysOfWeek {
+		if name, ok := dayNames[day]; ok {
+			names = append(names, name)
+		}
+	}
+
+	schedule := models.CommuteSchedule{
+		DaysOfWeek:  c.DaysOfWeek,
+		DayNames:    names,
+		ArrivalTime: c.PreferredArrivalTimeLocal,
+		Timezone:    c.Timezone,
+	}
+
+	// Load timezone for calculations
+	loc, err := time.LoadLocation(c.Timezone)
+	if err != nil {
+		// Fallback to UTC if timezone is invalid
+		loc = time.UTC
+	}
+
+	// Calculate IsActiveToday and NextOccurrence
+	now := time.Now().In(loc)
+	todayWeekday := isoWeekday(now.Weekday())
+	schedule.IsActiveToday = containsDay(c.DaysOfWeek, todayWeekday)
+
+	// Find next occurrence within 7 days
+	if next := s.findNextOccurrence(c, loc, now); next != nil {
+		formatted := next.Format(time.RFC3339)
+		schedule.NextOccurrence = &formatted
+	}
+
+	return schedule
+}
+
+// findNextOccurrence finds the next scheduled commute time within 7 days.
+func (s *Service) findNextOccurrence(c *Commute, loc *time.Location, now time.Time) *time.Time {
+	if len(c.DaysOfWeek) == 0 {
+		return nil
+	}
+
+	// Parse arrival time
+	parts := parseTimeHHMM(c.PreferredArrivalTimeLocal)
+	if parts == nil {
+		return nil
+	}
+	hour, minute := parts[0], parts[1]
+
+	// Check each day for the next 7 days
+	for i := 0; i < 7; i++ {
+		checkDate := now.AddDate(0, 0, i)
+		checkWeekday := isoWeekday(checkDate.Weekday())
+
+		if containsDay(c.DaysOfWeek, checkWeekday) {
+			// Create the candidate time on this day
+			candidate := time.Date(
+				checkDate.Year(), checkDate.Month(), checkDate.Day(),
+				hour, minute, 0, 0, loc,
+			)
+
+			// If it's today but the time has passed, skip to next occurrence
+			if i == 0 && candidate.Before(now) {
+				continue
+			}
+
+			return &candidate
+		}
+	}
+
+	return nil
+}
+
+// isoWeekday converts Go's time.Weekday (0=Sunday) to ISO weekday (1=Monday, 7=Sunday).
+func isoWeekday(w time.Weekday) int {
+	if w == time.Sunday {
+		return 7
+	}
+	return int(w)
+}
+
+// containsDay checks if a day number is in the list.
+func containsDay(days []int, day int) bool {
+	for _, d := range days {
+		if d == day {
+			return true
+		}
+	}
+	return false
+}
+
+// parseTimeHHMM parses a time string in HH:mm format and returns [hour, minute].
+func parseTimeHHMM(t string) []int {
+	if !timeHHMMRegex.MatchString(t) {
+		return nil
+	}
+
+	// Parse using time.Parse with a reference format
+	parsed, err := time.Parse("15:04", t)
+	if err != nil {
+		return nil
+	}
+
+	return []int{parsed.Hour(), parsed.Minute()}
 }
 
 // ValidationError represents validation errors.

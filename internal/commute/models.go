@@ -19,7 +19,8 @@ type Commute struct {
 	Origin                    Location
 	Destination               Location
 	DaysOfWeek                []int
-	PreferredArrivalTimeLocal string
+	PreferredArrivalTimeLocal string // HH:mm format in the specified timezone
+	Timezone                  string // IANA timezone identifier (e.g., "Europe/Amsterdam")
 	Notes                     *string
 	CreatedAt                 time.Time
 	UpdatedAt                 time.Time
