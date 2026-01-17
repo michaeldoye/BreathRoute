@@ -13,6 +13,8 @@ import (
 
 	"github.com/breatheroute/breatheroute/internal/api"
 	"github.com/breatheroute/breatheroute/internal/api/middleware"
+	"github.com/breatheroute/breatheroute/internal/commute"
+	"github.com/breatheroute/breatheroute/internal/featureflags"
 	"github.com/breatheroute/breatheroute/internal/telemetry"
 )
 
@@ -88,13 +90,29 @@ func main() {
 		os.Exit(1) //nolint:gocritic // intentional exit, telemetry cleanup is best-effort
 	}
 
+	// Initialize feature flags
+	ffRepo := featureflags.NewInMemoryRepository()
+	ffService := featureflags.NewService(featureflags.ServiceConfig{
+		Repository: ffRepo,
+		Logger:     log,
+		CacheTTL:   1 * time.Minute,
+	})
+	log.Info().Msg("feature flags service initialized")
+
+	// Initialize commute service
+	commuteRepo := commute.NewInMemoryRepository()
+	commuteService := commute.NewService(commuteRepo)
+	log.Info().Msg("commute service initialized")
+
 	// Create router with configuration
 	router := api.NewRouter(api.RouterConfig{
-		Version:     Version,
-		BuildTime:   BuildTime,
-		Logger:      log,
-		ServiceName: serviceName,
-		Metrics:     metrics,
+		Version:            Version,
+		BuildTime:          BuildTime,
+		Logger:             log,
+		ServiceName:        serviceName,
+		Metrics:            metrics,
+		FeatureFlagService: ffService,
+		CommuteService:     commuteService,
 	})
 
 	// Create HTTP server
