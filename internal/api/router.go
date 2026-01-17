@@ -10,6 +10,7 @@ import (
 	"github.com/breatheroute/breatheroute/internal/api/middleware"
 	"github.com/breatheroute/breatheroute/internal/auth"
 	"github.com/breatheroute/breatheroute/internal/commute"
+	"github.com/breatheroute/breatheroute/internal/device"
 	"github.com/breatheroute/breatheroute/internal/featureflags"
 	"github.com/breatheroute/breatheroute/internal/user"
 )
@@ -25,6 +26,7 @@ type RouterConfig struct {
 	UserService        *user.Service
 	FeatureFlagService *featureflags.Service
 	CommuteService     *commute.Service
+	DeviceService      *device.Service
 	// DevMode enables development-only endpoints (e.g., /auth/dev).
 	// Should never be true in production.
 	DevMode bool
@@ -61,7 +63,7 @@ func NewRouter(cfg RouterConfig) *chi.Mux {
 	commuteHandler := handler.NewCommuteHandler(cfg.CommuteService)
 	routeHandler := handler.NewRouteHandler()
 	alertHandler := handler.NewAlertHandler()
-	deviceHandler := handler.NewDeviceHandler()
+	deviceHandler := handler.NewDeviceHandler(cfg.DeviceService)
 	gdprHandler := handler.NewGDPRHandler()
 	metadataHandler := handler.NewMetadataHandler()
 	featureFlagsHandler := handler.NewFeatureFlagsHandler(cfg.FeatureFlagService)
