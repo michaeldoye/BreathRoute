@@ -197,8 +197,18 @@ jobs:
           output_format: sarif
           output_file_path: checkov-results.sarif
 
-      - name: Upload Checkov results
+      - name: Check for Checkov results file
+        id: check-sarif
         if: steps.check-tf.outputs.has_terraform == 'true' && always()
+        run: |
+          if [ -f "checkov-results.sarif" ]; then
+            echo "has_sarif=true" >> $GITHUB_OUTPUT
+          else
+            echo "has_sarif=false" >> $GITHUB_OUTPUT
+          fi
+
+      - name: Upload Checkov results
+        if: steps.check-sarif.outputs.has_sarif == 'true'
         uses: github/codeql-action/upload-sarif@v3
         with:
           sarif_file: checkov-results.sarif
