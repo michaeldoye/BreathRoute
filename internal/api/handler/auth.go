@@ -163,3 +163,22 @@ func (h *AuthHandler) LogoutAll(w http.ResponseWriter, r *http.Request) {
 
 	response.NoContent(w, r)
 }
+
+// DevLogin handles POST /v1/auth/dev - development-only authentication.
+// This endpoint is only available when AUTH_DEV_MODE=true.
+// It creates a test user and returns valid tokens for local testing.
+func (h *AuthHandler) DevLogin(w http.ResponseWriter, r *http.Request) {
+	var req auth.DevAuthenticateRequest
+	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
+		// Allow empty body - will create a new user with defaults
+		req = auth.DevAuthenticateRequest{}
+	}
+
+	tokenResp, err := h.authService.DevAuthenticate(r.Context(), &req)
+	if err != nil {
+		response.InternalError(w, r, "dev authentication failed")
+		return
+	}
+
+	response.JSON(w, r, http.StatusOK, tokenResp)
+}

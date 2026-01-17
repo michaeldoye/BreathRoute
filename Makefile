@@ -1,9 +1,9 @@
 # BreatheRoute Makefile
 # Run 'make help' to see available commands
 
-.PHONY: help setup setup-hooks dev dev-down dev-logs dev-tools db-shell redis-shell \
+.PHONY: help setup setup-hooks dev dev-down dev-logs dev-tools dev-observability db-shell redis-shell \
         build test lint fmt clean \
-        api worker migrate \
+        api run worker migrate \
         docker-build docker-push
 
 # Default target
@@ -70,15 +70,28 @@ dev-tools:
 	@echo "  Redis Commander: http://localhost:8081"
 	@echo "  MailHog:         http://localhost:8025"
 
+## dev-observability: Start observability stack (Jaeger, Prometheus, Grafana)
+dev-observability:
+	@echo "$(CYAN)Starting observability stack...$(RESET)"
+	$(DOCKER_COMPOSE) --profile observability up -d
+	@echo ""
+	@echo "$(GREEN)Observability tools available at:$(RESET)"
+	@echo "  Jaeger (traces):     http://localhost:16686"
+	@echo "  Prometheus (metrics): http://localhost:9090"
+	@echo "  Grafana (dashboards): http://localhost:3000 (admin / localdev)"
+	@echo ""
+	@echo "$(YELLOW)To send traces/metrics, run the API with:$(RESET)"
+	@echo "  OTEL_ENABLED=true OTEL_EXPORTER_OTLP_ENDPOINT=localhost:4317 make run"
+
 ## dev-down: Stop all development containers
 dev-down:
 	@echo "$(CYAN)Stopping development environment...$(RESET)"
-	$(DOCKER_COMPOSE) --profile tools down
+	$(DOCKER_COMPOSE) --profile tools --profile observability down
 
 ## dev-clean: Stop containers and remove volumes (fresh start)
 dev-clean:
 	@echo "$(YELLOW)Stopping containers and removing volumes...$(RESET)"
-	$(DOCKER_COMPOSE) --profile tools down -v
+	$(DOCKER_COMPOSE) --profile tools --profile observability down -v
 	@echo "$(GREEN)Clean environment ready for fresh start$(RESET)"
 
 ## dev-logs: Tail logs from development containers
@@ -108,6 +121,16 @@ build:
 api: build
 	@echo "$(CYAN)Starting API service...$(RESET)"
 	./bin/api
+
+## run: Build and run API with .env file loaded (for local development)
+run: build
+	@echo "$(CYAN)Starting API service with .env...$(RESET)"
+	@if [ -f .env ]; then \
+		set -a && . ./.env && set +a && ./bin/api; \
+	else \
+		echo "$(YELLOW)No .env file found. Copy .env.example to .env$(RESET)"; \
+		exit 1; \
+	fi
 
 ## worker: Build and run the Worker service
 worker: build

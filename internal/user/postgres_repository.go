@@ -35,23 +35,23 @@ func (r *PostgresRepository) Get(ctx context.Context, id string) (*User, error) 
 	`
 
 	var (
-		userID                     string
-		locale                     string
-		units                      models.Units
-		weightNO2                  float64
-		weightPM25                 float64
-		weightO3                   float64
-		weightPollen               float64
-		avoidMajorRoads            bool
-		preferParks                *bool
-		maxExtraMinutesVsFastest   *int
-		maxTransfers               *int
-		consentAnalytics           bool
-		consentMarketing           bool
-		consentPushNotifications   bool
-		consentsUpdatedAt          time.Time
-		createdAt                  time.Time
-		updatedAt                  time.Time
+		userID                   string
+		locale                   string
+		units                    models.Units
+		weightNO2                float64
+		weightPM25               float64
+		weightO3                 float64
+		weightPollen             float64
+		avoidMajorRoads          bool
+		preferParks              *bool
+		maxExtraMinutesVsFastest *int
+		maxTransfers             *int
+		consentAnalytics         bool
+		consentMarketing         bool
+		consentPushNotifications bool
+		consentsUpdatedAt        time.Time
+		createdAt                time.Time
+		updatedAt                time.Time
 	)
 
 	err := r.pool.QueryRow(ctx, query, id).Scan(
@@ -81,9 +81,9 @@ func (r *PostgresRepository) Get(ctx context.Context, id string) (*User, error) 
 	}
 
 	user := &User{
-		ID:        userID,
-		Locale:    locale,
-		Units:     units,
+		ID:     userID,
+		Locale: locale,
+		Units:  units,
 		Profile: &Profile{
 			Weights: ExposureWeights{
 				NO2:    weightNO2,
