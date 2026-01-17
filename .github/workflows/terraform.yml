@@ -73,6 +73,20 @@ jobs:
         id: init
         run: terraform init
 
+      - name: Import existing Artifact Registry (if exists)
+        id: import-ar
+        continue-on-error: true
+        run: |
+          # Try to import existing Artifact Registry repository
+          # This will fail silently if already in state or doesn't exist
+          terraform import \
+            -var="project_id=breatheroute" \
+            -var="region=europe-west4" \
+            -lock=false \
+            'module.infrastructure.google_artifact_registry_repository.containers' \
+            'projects/breatheroute/locations/europe-west4/repositories/breatheroute' \
+            2>/dev/null || echo "Import skipped (already in state or doesn't exist)"
+
       - name: Terraform Validate
         id: validate
         run: terraform validate -no-color
