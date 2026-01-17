@@ -13,6 +13,8 @@ import (
 	"time"
 
 	"github.com/golang-jwt/jwt/v5"
+
+	"github.com/breatheroute/breatheroute/internal/provider/resilience"
 )
 
 const (
@@ -53,9 +55,15 @@ type AppleJWKS struct {
 	Keys []AppleJWK `json:"keys"`
 }
 
+// HTTPDoer is an interface for making HTTP requests.
+// Both *http.Client and *resilience.Client satisfy this interface.
+type HTTPDoer interface {
+	Do(req *http.Request) (*http.Response, error)
+}
+
 // SIWAVerifier verifies Sign in with Apple identity tokens.
 type SIWAVerifier struct {
-	httpClient *http.Client
+	httpClient HTTPDoer
 	bundleID   string // Your app's bundle ID (audience)
 
 	// Key cache
@@ -70,16 +78,23 @@ type SIWAConfig struct {
 	BundleID string
 
 	// HTTPClient is an optional custom HTTP client for fetching keys.
-	HTTPClient *http.Client
+	// Can be *http.Client or *resilience.Client.
+	// If nil, a resilient client with circuit breaker is used.
+	HTTPClient HTTPDoer
 }
 
 // NewSIWAVerifier creates a new Sign in with Apple token verifier.
 func NewSIWAVerifier(cfg SIWAConfig) *SIWAVerifier {
 	httpClient := cfg.HTTPClient
 	if httpClient == nil {
-		httpClient = &http.Client{
-			Timeout: 10 * time.Second,
-		}
+		// Use a resilient client with circuit breaker and retry logic
+		httpClient = resilience.NewClient(resilience.ClientConfig{
+			Name:            "apple-siwa",
+			Timeout:         10 * time.Second,
+			MaxRetries:      3,
+			InitialInterval: 100 * time.Millisecond,
+			MaxInterval:     2 * time.Second,
+		})
 	}
 
 	return &SIWAVerifier{

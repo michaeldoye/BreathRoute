@@ -42,6 +42,8 @@ func NewRouter(cfg RouterConfig) *chi.Mux {
 	r.Use(middleware.Logger(cfg.Logger))   // Structured logging
 	r.Use(middleware.Recovery(cfg.Logger)) // Panic recovery
 	r.Use(chimiddleware.RealIP)            // Real IP extraction
+	r.Use(middleware.SecurityHeaders)      // Security headers (HSTS, CSP, etc.)
+	r.Use(middleware.RequireTLS)           // TLS enforcement (enabled via REQUIRE_TLS=true)
 	r.Use(middleware.ContentTypeJSON)      // JSON content type
 
 	// Initialize handlers
@@ -59,10 +61,16 @@ func NewRouter(cfg RouterConfig) *chi.Mux {
 	// Create auth middleware
 	authMiddleware := middleware.Auth(cfg.AuthService)
 
+	// Create rate limit middleware for different endpoint categories
+	authRateLimit := middleware.RateLimitByIP(middleware.AuthRateLimit)           // 10 req/min
+	expensiveRateLimit := middleware.RateLimitByIP(middleware.ExpensiveRateLimit) // 30 req/min
+	standardRateLimit := middleware.RateLimitByIP(middleware.StandardRateLimit)   // 100 req/min
+
 	// API v1 routes
 	r.Route("/v1", func(r chi.Router) {
-		// Auth endpoints (public)
+		// Auth endpoints (public) - strict rate limiting
 		r.Route("/auth", func(r chi.Router) {
+			r.Use(authRateLimit) // 10 requests per minute per IP
 			r.Post("/siwa", authHandler.SignInWithApple)
 			r.Post("/refresh", authHandler.RefreshToken)
 			r.Post("/logout", authHandler.Logout)
@@ -78,15 +86,17 @@ func NewRouter(cfg RouterConfig) *chi.Mux {
 			r.With(authMiddleware).Get("/status", opsHandler.SystemStatus)
 		})
 
-		// Metadata endpoints (public)
+		// Metadata endpoints (public) - standard rate limiting
 		r.Route("/metadata", func(r chi.Router) {
+			r.Use(standardRateLimit)
 			r.Get("/air-quality/stations", metadataHandler.ListAirQualityStations)
 			r.Get("/enums", metadataHandler.GetEnums)
 		})
 
-		// Me endpoints (authenticated)
+		// Me endpoints (authenticated) - user-based rate limiting
 		r.Route("/me", func(r chi.Router) {
 			r.Use(authMiddleware)
+			r.Use(middleware.RateLimitByUser(middleware.StandardRateLimit)) // 100 req/min per user
 			r.Get("/", meHandler.GetMe)
 			r.Put("/", meHandler.UpdateMe)
 
@@ -128,15 +138,16 @@ func NewRouter(cfg RouterConfig) *chi.Mux {
 			})
 		})
 
-		// Routes endpoint
-		r.Post("/routes:compute", routeHandler.ComputeRoutes)
+		// Routes endpoint - expensive compute, strict rate limiting
+		r.With(expensiveRateLimit).Post("/routes:compute", routeHandler.ComputeRoutes)
 
-		// Alerts preview endpoint
-		r.Post("/alerts/preview", alertHandler.PreviewDepartureWindows)
+		// Alerts preview endpoint - standard rate limiting
+		r.With(standardRateLimit).Post("/alerts/preview", alertHandler.PreviewDepartureWindows)
 
-		// GDPR endpoints (authenticated)
+		// GDPR endpoints (authenticated) - user-based rate limiting
 		r.Route("/gdpr", func(r chi.Router) {
 			r.Use(authMiddleware)
+			r.Use(middleware.RateLimitByUser(middleware.StandardRateLimit)) // 100 req/min per user
 			r.Route("/export-requests", func(r chi.Router) {
 				r.Get("/", gdprHandler.ListExportRequests)
 				r.Post("/", gdprHandler.CreateExportRequest)
