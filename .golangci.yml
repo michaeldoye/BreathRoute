@@ -1,17 +1,17 @@
-version: "2"
 run:
   modules-download-mode: readonly
   allow-parallel-runners: true
+
 output:
   formats:
-    text:
-      path: stdout
+    - format: colored-line-number
+
 linters:
   enable:
     - bodyclose
     - contextcheck
-    - copyloopvar
     - durationcheck
+    - errcheck
     - errname
     - errorlint
     - exhaustive
@@ -21,6 +21,7 @@ linters:
     - gocyclo
     - godot
     - gosec
+    - govet
     - misspell
     - nakedret
     - nilerr
@@ -34,7 +35,6 @@ linters:
     - tparallel
     - unconvert
     - unparam
-    - usetesting
     - wastedassign
     - whitespace
   disable:
@@ -45,114 +45,98 @@ linters:
     - lll
     - mnd
     - wsl
-  settings:
-    errcheck:
-      check-type-assertions: true
-      check-blank: false  # Allow _ = to explicitly ignore errors
-      exclude-functions:
-        - io.Copy
-        - io.WriterTo.WriteTo
-        - (io.Closer).Close
-    gocognit:
-      min-complexity: 20
-    goconst:
-      min-len: 3
-      min-occurrences: 3
-    gocritic:
-      disabled-checks:
-        - whyNoLint
-        - hugeParam
-        - commentedOutCode
-        - unnamedResult
-      enabled-tags:
-        - diagnostic
-        - experimental
-        - opinionated
-        - performance
-        - style
-    gocyclo:
-      min-complexity: 15
-    gosec:
-      excludes:
-        - G104
-      config:
-        G306: "0644"
-    govet:
-      disable:
-        - fieldalignment
-      enable-all: true
-    misspell:
-      locale: US
-    nakedret:
-      max-func-lines: 30
-    nolintlint:
-      require-explanation: true
-      require-specific: true
-    revive:
-      rules:
-        - name: blank-imports
-        - name: context-as-argument
-        - name: context-keys-type
-        - name: dot-imports
-        - name: error-naming
-        - name: error-return
-        - name: error-strings
-        - name: exported
-        - name: if-return
-        - name: increment-decrement
-        - name: indent-error-flow
-        - name: package-comments
-        - name: range
-        - name: receiver-naming
-        - name: time-naming
-        - name: unexported-return
-        - name: var-declaration
-    unparam:
-      check-exported: false
-  exclusions:
-    generated: lax
+
+linters-settings:
+  errcheck:
+    check-type-assertions: true
+    check-blank: false
+    exclude-functions:
+      - io.Copy
+      - io.WriterTo.WriteTo
+      - (io.Closer).Close
+  gocognit:
+    min-complexity: 20
+  goconst:
+    min-len: 3
+    min-occurrences: 3
+  gocritic:
+    disabled-checks:
+      - whyNoLint
+      - hugeParam
+      - commentedOutCode
+      - unnamedResult
+    enabled-tags:
+      - diagnostic
+      - experimental
+      - opinionated
+      - performance
+      - style
+  gocyclo:
+    min-complexity: 15
+  gosec:
+    excludes:
+      - G104
+    config:
+      G306: "0644"
+  govet:
+    disable:
+      - fieldalignment
+    enable-all: true
+  misspell:
+    locale: US
+  nakedret:
+    max-func-lines: 30
+  nolintlint:
+    require-explanation: true
+    require-specific: true
+  revive:
     rules:
-      - linters:
-          - errcheck
-          - gocognit
-          - gocyclo
-          - gosec
-          - revive
-          - unparam
-        path: _test\.go
-      - linters:
-          - contextcheck
-        path: middleware/recovery\.go
-      - linters:
-          - gochecknoglobals
-        path: cmd/.+/main\.go
-      - linters:
-          - forbidigo
-        path: cmd/
-      - linters:
-          - lll
-        path: _generated\.go
-    paths:
-      - third_party$
-      - builtin$
-      - examples$
+      - name: blank-imports
+      - name: context-as-argument
+      - name: context-keys-type
+      - name: dot-imports
+      - name: error-naming
+      - name: error-return
+      - name: error-strings
+      - name: exported
+      - name: if-return
+      - name: increment-decrement
+      - name: indent-error-flow
+      - name: package-comments
+      - name: range
+      - name: receiver-naming
+      - name: time-naming
+      - name: unexported-return
+      - name: var-declaration
+  unparam:
+    check-exported: false
+
 issues:
+  exclude-rules:
+    - path: _test\.go
+      linters:
+        - errcheck
+        - gocognit
+        - gocyclo
+        - gosec
+        - revive
+        - unparam
+    - path: middleware/recovery\.go
+      linters:
+        - contextcheck
+    - path: cmd/.+/main\.go
+      linters:
+        - gochecknoglobals
+    - path: cmd/
+      linters:
+        - forbidigo
+    - path: _generated\.go
+      linters:
+        - lll
+  exclude-dirs:
+    - third_party
+    - builtin
+    - examples
   max-issues-per-linter: 0
   max-same-issues: 0
   new: false
-formatters:
-  enable:
-    - gofmt
-    - goimports
-  settings:
-    gofmt:
-      simplify: true
-    goimports:
-      local-prefixes:
-        - github.com/breatheroute/breatheroute
-  exclusions:
-    generated: lax
-    paths:
-      - third_party$
-      - builtin$
-      - examples$

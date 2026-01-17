@@ -1,13 +1,13 @@
 name: iOS Build & Release
 
 on:
-  push:
-    branches:
-      - main
-      - develop
-    paths:
-      - 'ios/**'
-      - '.github/workflows/ios.yml'
+#  push:
+#    branches:
+#      - main
+#      - develop
+#    paths:
+#      - 'ios/**'
+#      - '.github/workflows/ios.yml'
   pull_request:
     branches:
       - main
