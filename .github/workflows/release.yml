@@ -30,6 +30,7 @@ jobs:
     runs-on: ubuntu-latest
     outputs:
       version: ${{ steps.version.outputs.version }}
+      version_tag: ${{ steps.version.outputs.version_tag }}
       release_backend: ${{ steps.components.outputs.backend }}
       release_ios: ${{ steps.components.outputs.ios }}
     steps:
@@ -37,12 +38,14 @@ jobs:
         id: version
         run: |
           if [ "${{ github.event_name }}" == "workflow_dispatch" ]; then
-            echo "version=${{ inputs.version }}" >> $GITHUB_OUTPUT
+            VERSION="${{ inputs.version }}"
           else
             # Extract version from tag (remove 'v' prefix)
             VERSION=${GITHUB_REF#refs/tags/v}
-            echo "version=$VERSION" >> $GITHUB_OUTPUT
           fi
+          echo "version=$VERSION" >> $GITHUB_OUTPUT
+          # Cloud Run tags cannot contain dots, convert 1.1.0 to 1-1-0
+          echo "version_tag=v${VERSION//./-}" >> $GITHUB_OUTPUT
 
       - name: Determine components
         id: components
@@ -127,20 +130,20 @@ jobs:
       - name: Deploy API to production
         uses: google-github-actions/deploy-cloudrun@v2
         with:
-          service: breatheroute-api
+          service: breatheroute-prod-api
           region: ${{ env.REGION }}
           image: ${{ env.REGISTRY }}/breatheroute/breatheroute/api:${{ needs.prepare.outputs.version }}
           project_id: breatheroute
-          tag: v${{ needs.prepare.outputs.version }}
+          tag: ${{ needs.prepare.outputs.version_tag }}
 
       - name: Deploy Worker to production
         uses: google-github-actions/deploy-cloudrun@v2
         with:
-          service: breatheroute-worker
+          service: breatheroute-prod-worker
           region: ${{ env.REGION }}
           image: ${{ env.REGISTRY }}/breatheroute/breatheroute/worker:${{ needs.prepare.outputs.version }}
           project_id: breatheroute
-          tag: v${{ needs.prepare.outputs.version }}
+          tag: ${{ needs.prepare.outputs.version_tag }}
 
   release-ios:
     needs: prepare
