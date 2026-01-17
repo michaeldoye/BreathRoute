@@ -15,8 +15,8 @@ resource "google_cloud_scheduler_job" "provider_refresh" {
 
   pubsub_target {
     topic_name = var.provider_refresh_topic
-    data       = base64encode(jsonencode({
-      job_type   = "provider_refresh"
+    data = base64encode(jsonencode({
+      job_type    = "provider_refresh"
       refresh_all = true
     }))
     attributes = {
@@ -43,8 +43,8 @@ resource "google_cloud_scheduler_job" "alert_evaluation" {
 
   pubsub_target {
     topic_name = var.alert_evaluation_topic
-    data       = base64encode(jsonencode({
-      job_type       = "alert_evaluation"
+    data = base64encode(jsonencode({
+      job_type        = "alert_evaluation"
       lookahead_hours = 24
     }))
     attributes = {
@@ -70,7 +70,7 @@ resource "google_cloud_scheduler_job" "alert_evaluation_evening" {
 
   pubsub_target {
     topic_name = var.alert_evaluation_topic
-    data       = base64encode(jsonencode({
+    data = base64encode(jsonencode({
       job_type        = "alert_evaluation"
       lookahead_hours = 18 # Next morning
       priority        = "next_day"
@@ -99,9 +99,9 @@ resource "google_cloud_scheduler_job" "provider_health_check" {
 
   pubsub_target {
     topic_name = var.provider_refresh_topic
-    data       = base64encode(jsonencode({
-      job_type    = "health_check"
-      check_only  = true
+    data = base64encode(jsonencode({
+      job_type   = "health_check"
+      check_only = true
     }))
     attributes = {
       job_type = "health_check"

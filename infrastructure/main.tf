@@ -77,6 +77,7 @@ module "networking" {
 
   project_id         = var.project_id
   region             = var.region
+  environment        = var.environment
   name_prefix        = local.name_prefix
   vpc_connector_cidr = var.vpc_connector_cidr
   labels             = local.labels
@@ -118,16 +119,16 @@ module "secrets" {
 module "cloud_sql" {
   source = "./modules/cloud-sql"
 
-  project_id          = var.project_id
-  region              = var.region
-  name_prefix         = local.name_prefix
-  labels              = local.labels
-  network_id          = module.networking.vpc_id
-  tier                = var.db_tier
-  disk_size_gb        = var.db_disk_size_gb
-  high_availability   = var.db_high_availability
-  backup_enabled      = var.db_backup_enabled
-  private_network     = module.networking.vpc_self_link
+  project_id        = var.project_id
+  region            = var.region
+  name_prefix       = local.name_prefix
+  labels            = local.labels
+  network_id        = module.networking.vpc_id
+  tier              = var.db_tier
+  disk_size_gb      = var.db_disk_size_gb
+  high_availability = var.db_high_availability
+  backup_enabled    = var.db_backup_enabled
+  private_network   = module.networking.vpc_self_link
 
   depends_on = [
     google_project_service.apis,
@@ -211,14 +212,14 @@ module "cloud_run_api" {
 
   # Environment variables (non-secret)
   env_vars = {
-    ENVIRONMENT          = var.environment
-    GCP_PROJECT          = var.project_id
-    REDIS_HOST           = module.redis.host
-    REDIS_PORT           = tostring(module.redis.port)
-    DB_HOST              = module.cloud_sql.private_ip
-    DB_PORT              = "5432"
-    DB_NAME              = module.cloud_sql.database_name
-    PUBSUB_PROJECT       = var.project_id
+    ENVIRONMENT    = var.environment
+    GCP_PROJECT    = var.project_id
+    REDIS_HOST     = module.redis.host
+    REDIS_PORT     = tostring(module.redis.port)
+    DB_HOST        = module.cloud_sql.private_ip
+    DB_PORT        = "5432"
+    DB_NAME        = module.cloud_sql.database_name
+    PUBSUB_PROJECT = var.project_id
   }
 
   # Secret references
@@ -261,14 +262,14 @@ module "cloud_run_worker" {
   memory        = var.cloud_run_memory
 
   env_vars = {
-    ENVIRONMENT          = var.environment
-    GCP_PROJECT          = var.project_id
-    REDIS_HOST           = module.redis.host
-    REDIS_PORT           = tostring(module.redis.port)
-    DB_HOST              = module.cloud_sql.private_ip
-    DB_PORT              = "5432"
-    DB_NAME              = module.cloud_sql.database_name
-    PUBSUB_PROJECT       = var.project_id
+    ENVIRONMENT    = var.environment
+    GCP_PROJECT    = var.project_id
+    REDIS_HOST     = module.redis.host
+    REDIS_PORT     = tostring(module.redis.port)
+    DB_HOST        = module.cloud_sql.private_ip
+    DB_PORT        = "5432"
+    DB_NAME        = module.cloud_sql.database_name
+    PUBSUB_PROJECT = var.project_id
   }
 
   secret_env_vars = {
