@@ -39,7 +39,7 @@ func (h *ProfileHandler) GetProfile(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	response.JSON(w, http.StatusOK, profile)
+	response.JSON(w, r, http.StatusOK, profile)
 }
 
 // UpsertProfile handles PUT /v1/me/profile - create or update profile.
@@ -72,7 +72,7 @@ func (h *ProfileHandler) UpsertProfile(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	response.JSON(w, http.StatusOK, profile)
+	response.JSON(w, r, http.StatusOK, profile)
 }
 
 // validateProfileInput validates profile input and returns any field errors.
