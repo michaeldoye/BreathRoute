@@ -40,7 +40,7 @@ module "infrastructure" {
   redis_tier           = "STANDARD_HA" # High availability
 
   # Cloud Run - production limits
-  cloud_run_min_instances = 1  # Always warm
+  cloud_run_min_instances = 1 # Always warm
   cloud_run_max_instances = 20
   cloud_run_cpu           = "2"
   cloud_run_memory        = "1Gi"

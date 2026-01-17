@@ -120,7 +120,7 @@ resource "google_pubsub_subscription" "webhook_delivery" {
 
   retry_policy {
     minimum_backoff = "30s"
-    maximum_backoff = "3600s" # Up to 1 hour for webhook retries
+    maximum_backoff = "600s" # Max allowed is 10 minutes # Up to 1 hour for webhook retries
   }
 
   dead_letter_policy {
@@ -144,7 +144,7 @@ resource "google_pubsub_subscription" "gdpr_export" {
 
   retry_policy {
     minimum_backoff = "60s"
-    maximum_backoff = "3600s"
+    maximum_backoff = "600s" # Max allowed is 10 minutes
   }
 
   dead_letter_policy {
@@ -168,7 +168,7 @@ resource "google_pubsub_subscription" "gdpr_deletion" {
 
   retry_policy {
     minimum_backoff = "60s"
-    maximum_backoff = "3600s"
+    maximum_backoff = "600s" # Max allowed is 10 minutes
   }
 
   dead_letter_policy {

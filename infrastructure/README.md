@@ -103,6 +103,26 @@ gcloud projects add-iam-policy-binding $PROJECT_ID \
 gcloud storage buckets add-iam-policy-binding gs://breatheroute-terraform-state \
     --member="serviceAccount:github-actions@breatheroute.iam.gserviceaccount.com" \
     --role="roles/storage.objectAdmin"
+    
+      # Grant IAM admin permissions
+  gcloud projects add-iam-policy-binding breatheroute \
+    --member="serviceAccount:github-actions@breatheroute.iam.gserviceaccount.com" \
+    --role="roles/resourcemanager.projectIamAdmin"
+
+  # Grant service networking permissions  
+  gcloud projects add-iam-policy-binding breatheroute \
+    --member="serviceAccount:github-actions@breatheroute.iam.gserviceaccount.com" \
+    --role="roles/servicenetworking.networksAdmin"
+
+  # Grant secret manager admin
+  gcloud projects add-iam-policy-binding breatheroute \
+    --member="serviceAccount:github-actions@breatheroute.iam.gserviceaccount.com" \
+    --role="roles/secretmanager.admin"
+
+  # Grant pubsub admin
+  gcloud projects add-iam-policy-binding breatheroute \
+    --member="serviceAccount:github-actions@breatheroute.iam.gserviceaccount.com" \
+    --role="roles/pubsub.admin"
 
 # Create and download key
 gcloud iam service-accounts keys create github-actions-key.json \

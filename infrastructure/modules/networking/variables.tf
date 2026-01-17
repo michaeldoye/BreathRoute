@@ -3,6 +3,11 @@ variable "project_id" {
   type        = string
 }
 
+variable "environment" {
+  description = "Environment name (prod, staging)"
+  type        = string
+}
+
 variable "region" {
   description = "GCP region"
   type        = string
