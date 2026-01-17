@@ -22,7 +22,7 @@ func NewCommuteHandler() *CommuteHandler {
 }
 
 // ListCommutes handles GET /v1/me/commutes - list saved commutes.
-func (h *CommuteHandler) ListCommutes(w http.ResponseWriter, _ *http.Request) {
+func (h *CommuteHandler) ListCommutes(w http.ResponseWriter, r *http.Request) {
 	// TODO: Get actual commutes from database with pagination
 	now := models.Timestamp(time.Now())
 	commutes := models.PagedCommutes{
@@ -46,7 +46,7 @@ func (h *CommuteHandler) ListCommutes(w http.ResponseWriter, _ *http.Request) {
 			Limit: 50,
 		},
 	}
-	response.JSON(w, http.StatusOK, commutes)
+	response.JSON(w, r, http.StatusOK, commutes)
 }
 
 // CreateCommute handles POST /v1/me/commutes - create a saved commute.
@@ -75,7 +75,7 @@ func (h *CommuteHandler) CreateCommute(w http.ResponseWriter, r *http.Request) {
 	}
 
 	location := fmt.Sprintf("/v1/me/commutes/%s", commuteID)
-	response.Created(w, location, commute)
+	response.Created(w, r, location, commute)
 }
 
 // GetCommute handles GET /v1/me/commutes/{commuteId} - get a saved commute.
@@ -102,7 +102,7 @@ func (h *CommuteHandler) GetCommute(w http.ResponseWriter, r *http.Request) {
 		CreatedAt:                 now,
 		UpdatedAt:                 now,
 	}
-	response.JSON(w, http.StatusOK, commute)
+	response.JSON(w, r, http.StatusOK, commute)
 }
 
 // UpdateCommute handles PUT /v1/me/commutes/{commuteId} - update a saved commute.
@@ -157,7 +157,7 @@ func (h *CommuteHandler) UpdateCommute(w http.ResponseWriter, r *http.Request) {
 		commute.Notes = input.Notes
 	}
 
-	response.JSON(w, http.StatusOK, commute)
+	response.JSON(w, r, http.StatusOK, commute)
 }
 
 // DeleteCommute handles DELETE /v1/me/commutes/{commuteId} - delete a saved commute.
@@ -170,5 +170,5 @@ func (h *CommuteHandler) DeleteCommute(w http.ResponseWriter, r *http.Request) {
 
 	// TODO: Delete commute from database
 
-	response.NoContent(w)
+	response.NoContent(w, r)
 }
