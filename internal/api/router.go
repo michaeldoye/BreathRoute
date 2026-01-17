@@ -8,6 +8,8 @@ import (
 
 	"github.com/breatheroute/breatheroute/internal/api/handler"
 	"github.com/breatheroute/breatheroute/internal/api/middleware"
+	"github.com/breatheroute/breatheroute/internal/auth"
+	"github.com/breatheroute/breatheroute/internal/user"
 )
 
 // RouterConfig holds configuration for the router.
@@ -17,6 +19,8 @@ type RouterConfig struct {
 	Logger      zerolog.Logger
 	ServiceName string
 	Metrics     *middleware.Metrics
+	AuthService *auth.Service
+	UserService *user.Service
 }
 
 // NewRouter creates a new chi router with all API routes configured.
@@ -42,8 +46,9 @@ func NewRouter(cfg RouterConfig) *chi.Mux {
 
 	// Initialize handlers
 	opsHandler := handler.NewOpsHandler(cfg.Version, cfg.BuildTime)
-	meHandler := handler.NewMeHandler()
-	profileHandler := handler.NewProfileHandler()
+	authHandler := handler.NewAuthHandler(cfg.AuthService)
+	meHandler := handler.NewMeHandler(cfg.UserService)
+	profileHandler := handler.NewProfileHandler(cfg.UserService)
 	commuteHandler := handler.NewCommuteHandler()
 	routeHandler := handler.NewRouteHandler()
 	alertHandler := handler.NewAlertHandler()
@@ -51,13 +56,26 @@ func NewRouter(cfg RouterConfig) *chi.Mux {
 	gdprHandler := handler.NewGDPRHandler()
 	metadataHandler := handler.NewMetadataHandler()
 
+	// Create auth middleware
+	authMiddleware := middleware.Auth(cfg.AuthService)
+
 	// API v1 routes
 	r.Route("/v1", func(r chi.Router) {
+		// Auth endpoints (public)
+		r.Route("/auth", func(r chi.Router) {
+			r.Post("/siwa", authHandler.SignInWithApple)
+			r.Post("/refresh", authHandler.RefreshToken)
+			r.Post("/logout", authHandler.Logout)
+			// logout-all requires authentication
+			r.With(authMiddleware).Post("/logout-all", authHandler.LogoutAll)
+		})
+
 		// Ops endpoints (public)
 		r.Route("/ops", func(r chi.Router) {
 			r.Get("/health", opsHandler.HealthCheck)
 			r.Get("/ready", opsHandler.ReadinessCheck)
-			r.Get("/status", opsHandler.SystemStatus) // TODO: Add auth middleware
+			// Status endpoint requires authentication
+			r.With(authMiddleware).Get("/status", opsHandler.SystemStatus)
 		})
 
 		// Metadata endpoints (public)
@@ -67,9 +85,10 @@ func NewRouter(cfg RouterConfig) *chi.Mux {
 		})
 
 		// Me endpoints (authenticated)
-		// TODO: Add auth middleware
 		r.Route("/me", func(r chi.Router) {
+			r.Use(authMiddleware)
 			r.Get("/", meHandler.GetMe)
+			r.Put("/", meHandler.UpdateMe)
 
 			// Consents
 			r.Get("/consents", meHandler.GetConsents)
@@ -115,8 +134,9 @@ func NewRouter(cfg RouterConfig) *chi.Mux {
 		// Alerts preview endpoint
 		r.Post("/alerts/preview", alertHandler.PreviewDepartureWindows)
 
-		// GDPR endpoints
+		// GDPR endpoints (authenticated)
 		r.Route("/gdpr", func(r chi.Router) {
+			r.Use(authMiddleware)
 			r.Route("/export-requests", func(r chi.Router) {
 				r.Get("/", gdprHandler.ListExportRequests)
 				r.Post("/", gdprHandler.CreateExportRequest)
