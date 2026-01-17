@@ -40,17 +40,19 @@ Run `make help` to see all available commands:
 
 ```
 Development:
-  dev           Start local development dependencies (Postgres, Redis)
-  dev-tools     Start development tools (pgAdmin, Redis Commander, MailHog)
-  dev-down      Stop all development containers
-  dev-clean     Stop containers and remove volumes (fresh start)
-  dev-logs      Tail logs from development containers
-  db-shell      Open PostgreSQL shell
-  redis-shell   Open Redis CLI
+  dev              Start local development dependencies (Postgres, Redis)
+  dev-tools        Start development tools (pgAdmin, Redis Commander, MailHog)
+  dev-observability Start observability stack (Jaeger, Prometheus, Grafana)
+  dev-down         Stop all development containers
+  dev-clean        Stop containers and remove volumes (fresh start)
+  dev-logs         Tail logs from development containers
+  db-shell         Open PostgreSQL shell
+  redis-shell      Open Redis CLI
 
 Build & Test:
   build         Build all binaries
   api           Build and run the API service
+  run           Build and run API with .env file loaded
   worker        Build and run the Worker service
   test          Run all tests
   test-coverage Run tests and show coverage report
@@ -137,6 +139,32 @@ make dev-tools
 | pgAdmin | http://localhost:8082 | admin@breatheroute.local / localdev |
 | Redis Commander | http://localhost:8081 | - |
 | MailHog | http://localhost:8025 | - |
+
+## Observability (Logs, Traces, Metrics)
+
+Start the observability stack for distributed tracing and metrics:
+
+```bash
+make dev-observability
+```
+
+| Tool | URL | Purpose |
+|------|-----|---------|
+| Jaeger | http://localhost:16686 | Distributed tracing |
+| Prometheus | http://localhost:9090 | Metrics queries |
+| Grafana | http://localhost:3000 | Dashboards (admin / localdev) |
+
+Run the API with telemetry enabled:
+
+```bash
+# With .env file (OTEL_ENABLED=true)
+make run
+
+# Or inline
+OTEL_ENABLED=true make run
+```
+
+See [docs/OBSERVABILITY.md](docs/OBSERVABILITY.md) for the complete guide.
 
 ## Database Migrations
 

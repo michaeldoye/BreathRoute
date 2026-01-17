@@ -161,6 +161,12 @@ func main() {
 	})
 	log.Info().Msg("feature flags service initialized")
 
+	// Check for development mode (enables /auth/dev endpoint)
+	devMode := os.Getenv("AUTH_DEV_MODE") == "true"
+	if devMode {
+		log.Warn().Msg("AUTH_DEV_MODE is enabled - /v1/auth/dev endpoint active - DO NOT USE IN PRODUCTION")
+	}
+
 	// Create router with configuration
 	router := api.NewRouter(api.RouterConfig{
 		Version:            Version,
@@ -172,6 +178,7 @@ func main() {
 		UserService:        userService,
 		FeatureFlagService: ffService,
 		CommuteService:     commuteService,
+		DevMode:            devMode,
 	})
 
 	// Create HTTP server

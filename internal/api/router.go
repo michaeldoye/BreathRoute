@@ -25,6 +25,9 @@ type RouterConfig struct {
 	UserService        *user.Service
 	FeatureFlagService *featureflags.Service
 	CommuteService     *commute.Service
+	// DevMode enables development-only endpoints (e.g., /auth/dev).
+	// Should never be true in production.
+	DevMode bool
 }
 
 // NewRouter creates a new chi router with all API routes configured.
@@ -81,6 +84,11 @@ func NewRouter(cfg RouterConfig) *chi.Mux {
 			r.Post("/logout", authHandler.Logout)
 			// logout-all requires authentication
 			r.With(authMiddleware).Post("/logout-all", authHandler.LogoutAll)
+
+			// Development-only endpoint for local testing
+			if cfg.DevMode {
+				r.Post("/dev", authHandler.DevLogin)
+			}
 		})
 
 		// Ops endpoints (public)

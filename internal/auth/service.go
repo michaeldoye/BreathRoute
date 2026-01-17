@@ -225,3 +225,52 @@ func (s *Service) generateTokens(ctx context.Context, user *User) (*TokenRespons
 func generateUserID() string {
 	return "usr_" + uuid.New().String()[:22]
 }
+
+// DevAuthenticateRequest is the request for development authentication.
+type DevAuthenticateRequest struct {
+	// UserID is an optional user ID. If not provided, a new user is created.
+	UserID string `json:"userId,omitempty"`
+	// Email is an optional email for the test user.
+	Email string `json:"email,omitempty"`
+}
+
+// DevAuthenticate creates or retrieves a test user and returns tokens.
+// This is intended for local development only and should never be enabled in production.
+func (s *Service) DevAuthenticate(ctx context.Context, req *DevAuthenticateRequest) (*TokenResponse, error) {
+	var user *User
+
+	if req.UserID != "" {
+		// Try to find existing user
+		var err error
+		user, err = s.userRepo.FindByID(ctx, req.UserID)
+		if err != nil && !errors.Is(err, ErrUserNotFound) {
+			return nil, fmt.Errorf("finding user: %w", err)
+		}
+	}
+
+	if user == nil {
+		// Create a new test user
+		now := time.Now()
+		testSub := "dev_" + uuid.New().String()[:8]
+		email := req.Email
+		if email == "" {
+			email = testSub + "@dev.local"
+		}
+
+		user = &User{
+			ID:        generateUserID(),
+			AppleSub:  testSub,
+			Email:     email,
+			Locale:    s.defaultLocale,
+			CreatedAt: now,
+			UpdatedAt: now,
+		}
+
+		if err := s.userRepo.Create(ctx, user); err != nil {
+			return nil, fmt.Errorf("creating test user: %w", err)
+		}
+	}
+
+	// Generate tokens
+	return s.generateTokens(ctx, user)
+}
