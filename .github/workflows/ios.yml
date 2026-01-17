@@ -25,6 +25,12 @@ on:
         options:
           - testflight
           - app-store
+  workflow_call:
+    inputs:
+      destination:
+        description: 'Release destination'
+        required: true
+        type: string
 
 env:
   XCODE_VERSION: '15.4'
