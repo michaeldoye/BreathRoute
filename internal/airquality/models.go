@@ -8,8 +8,8 @@ import (
 
 // Provider errors.
 var (
-	ErrStationNotFound    = errors.New("station not found")
-	ErrNoMeasurements     = errors.New("no measurements available")
+	ErrStationNotFound     = errors.New("station not found")
+	ErrNoMeasurements      = errors.New("no measurements available")
 	ErrProviderUnavailable = errors.New("air quality provider unavailable")
 )
 
@@ -35,11 +35,11 @@ type Station struct {
 
 // Measurement represents a single pollutant measurement at a station.
 type Measurement struct {
-	StationID   string
-	Pollutant   Pollutant
-	Value       float64
-	Unit        string
-	MeasuredAt  time.Time
+	StationID  string
+	Pollutant  Pollutant
+	Value      float64
+	Unit       string
+	MeasuredAt time.Time
 }
 
 // AQSnapshot represents a point-in-time snapshot of air quality data.

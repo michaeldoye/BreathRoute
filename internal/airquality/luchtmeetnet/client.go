@@ -81,10 +81,10 @@ type stationsResponse struct {
 }
 
 type stationData struct {
-	Number      string            `json:"number"`
-	Location    string            `json:"location"`
-	Coordinates locationData      `json:"geometry.coordinates"`
-	Components  []string          `json:"components"`
+	Number      string       `json:"number"`
+	Location    string       `json:"location"`
+	Coordinates locationData `json:"geometry.coordinates"`
+	Components  []string     `json:"components"`
 }
 
 type locationData struct {

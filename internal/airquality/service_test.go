@@ -17,10 +17,10 @@ import (
 
 // mockProvider is a test provider that returns configurable data.
 type mockProvider struct {
-	snapshot     *airquality.AQSnapshot
-	err          error
-	fetchCount   atomic.Int32
-	fetchDelay   time.Duration
+	snapshot   *airquality.AQSnapshot
+	err        error
+	fetchCount atomic.Int32
+	fetchDelay time.Duration
 }
 
 func (m *mockProvider) FetchSnapshot(ctx context.Context) (*airquality.AQSnapshot, error) {
