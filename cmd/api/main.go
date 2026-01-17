@@ -13,8 +13,12 @@ import (
 
 	"github.com/breatheroute/breatheroute/internal/api"
 	"github.com/breatheroute/breatheroute/internal/api/middleware"
+	"github.com/breatheroute/breatheroute/internal/auth"
+	"github.com/breatheroute/breatheroute/internal/commute"
+	"github.com/breatheroute/breatheroute/internal/database"
 	"github.com/breatheroute/breatheroute/internal/featureflags"
 	"github.com/breatheroute/breatheroute/internal/telemetry"
+	"github.com/breatheroute/breatheroute/internal/user"
 )
 
 // Version and BuildTime are set at compile time via ldflags.
@@ -89,8 +93,67 @@ func main() {
 		os.Exit(1) //nolint:gocritic // intentional exit, telemetry cleanup is best-effort
 	}
 
-	// Initialize feature flags
-	ffRepo := featureflags.NewInMemoryRepository()
+	// Connect to database
+	dbConfig := database.ConfigFromEnv()
+	pool, err := database.Connect(ctx, dbConfig)
+	if err != nil {
+		log.Fatal().Err(err).Msg("failed to connect to database")
+	}
+	defer pool.Close()
+	log.Info().
+		Str("host", dbConfig.Host).
+		Int("port", dbConfig.Port).
+		Str("database", dbConfig.Database).
+		Msg("database connected")
+
+	// Initialize auth repositories and service
+	authUserRepo := auth.NewPostgresUserRepository(pool)
+	authRefreshRepo := auth.NewPostgresRefreshTokenRepository(pool)
+
+	// Initialize JWT service (get signing key from environment)
+	jwtSigningKey := os.Getenv("JWT_SIGNING_KEY")
+	if jwtSigningKey == "" {
+		jwtSigningKey = "local-dev-signing-key-change-in-production"
+		log.Warn().Msg("using default JWT signing key - not secure for production")
+	}
+
+	jwtService := auth.NewJWTService(auth.JWTConfig{
+		SigningKey: jwtSigningKey,
+	})
+
+	// Initialize SIWA verifier (may be nil if not configured)
+	var siwaVerifier *auth.SIWAVerifier
+	appleBundleID := os.Getenv("APPLE_CLIENT_ID") // Bundle ID for iOS app
+	if appleBundleID != "" {
+		siwaVerifier = auth.NewSIWAVerifier(auth.SIWAConfig{
+			BundleID: appleBundleID,
+		})
+		log.Info().Msg("Sign in with Apple verifier initialized")
+	} else {
+		log.Warn().Msg("Sign in with Apple not configured - auth endpoints will fail")
+	}
+
+	authService := auth.NewService(auth.ServiceConfig{
+		SIWAVerifier:  siwaVerifier,
+		JWTService:    jwtService,
+		UserRepo:      authUserRepo,
+		RefreshRepo:   authRefreshRepo,
+		DefaultLocale: "nl-NL",
+	})
+	log.Info().Msg("auth service initialized")
+
+	// Initialize user repository and service
+	userRepo := user.NewPostgresRepository(pool)
+	userService := user.NewService(userRepo)
+	log.Info().Msg("user service initialized")
+
+	// Initialize commute repository and service
+	commuteRepo := commute.NewPostgresRepository(pool)
+	commuteService := commute.NewService(commuteRepo)
+	log.Info().Msg("commute service initialized")
+
+	// Initialize feature flags repository and service
+	ffRepo := featureflags.NewPostgresRepository(pool)
 	ffService := featureflags.NewService(featureflags.ServiceConfig{
 		Repository: ffRepo,
 		Logger:     log,
@@ -105,7 +168,10 @@ func main() {
 		Logger:             log,
 		ServiceName:        serviceName,
 		Metrics:            metrics,
+		AuthService:        authService,
+		UserService:        userService,
 		FeatureFlagService: ffService,
+		CommuteService:     commuteService,
 	})
 
 	// Create HTTP server

@@ -9,6 +9,7 @@ import (
 	"github.com/breatheroute/breatheroute/internal/api/handler"
 	"github.com/breatheroute/breatheroute/internal/api/middleware"
 	"github.com/breatheroute/breatheroute/internal/auth"
+	"github.com/breatheroute/breatheroute/internal/commute"
 	"github.com/breatheroute/breatheroute/internal/featureflags"
 	"github.com/breatheroute/breatheroute/internal/user"
 )
@@ -23,6 +24,7 @@ type RouterConfig struct {
 	AuthService        *auth.Service
 	UserService        *user.Service
 	FeatureFlagService *featureflags.Service
+	CommuteService     *commute.Service
 }
 
 // NewRouter creates a new chi router with all API routes configured.
@@ -53,7 +55,7 @@ func NewRouter(cfg RouterConfig) *chi.Mux {
 	authHandler := handler.NewAuthHandler(cfg.AuthService)
 	meHandler := handler.NewMeHandler(cfg.UserService)
 	profileHandler := handler.NewProfileHandler(cfg.UserService)
-	commuteHandler := handler.NewCommuteHandler()
+	commuteHandler := handler.NewCommuteHandler(cfg.CommuteService)
 	routeHandler := handler.NewRouteHandler()
 	alertHandler := handler.NewAlertHandler()
 	deviceHandler := handler.NewDeviceHandler()

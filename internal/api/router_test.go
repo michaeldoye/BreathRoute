@@ -17,6 +17,7 @@ import (
 	"github.com/breatheroute/breatheroute/internal/api"
 	"github.com/breatheroute/breatheroute/internal/api/models"
 	"github.com/breatheroute/breatheroute/internal/auth"
+	"github.com/breatheroute/breatheroute/internal/commute"
 	"github.com/breatheroute/breatheroute/internal/user"
 )
 
@@ -78,14 +79,21 @@ func testUserService() *user.Service {
 	return svc
 }
 
+// testCommuteService creates a commute service for testing.
+func testCommuteService() *commute.Service {
+	repo := commute.NewInMemoryRepository()
+	return commute.NewService(repo)
+}
+
 func newTestRouter() http.Handler {
 	logger := zerolog.New(io.Discard)
 	return api.NewRouter(api.RouterConfig{
-		Version:     "test",
-		BuildTime:   "2024-01-01T00:00:00Z",
-		Logger:      logger,
-		AuthService: testAuthService(),
-		UserService: testUserService(),
+		Version:        "test",
+		BuildTime:      "2024-01-01T00:00:00Z",
+		Logger:         logger,
+		AuthService:    testAuthService(),
+		UserService:    testUserService(),
+		CommuteService: testCommuteService(),
 	})
 }
 
@@ -279,7 +287,33 @@ func TestRouter_CreateCommute(t *testing.T) {
 func TestRouter_GetCommute(t *testing.T) {
 	router := newTestRouter()
 
-	req := httptest.NewRequest(http.MethodGet, "/v1/me/commutes/cmt_test123", http.NoBody)
+	// First, create a commute
+	input := models.CommuteCreateRequest{
+		Label: "Test Commute",
+		Origin: models.CommuteLocation{
+			Point: models.Point{Lat: 52.37, Lon: 4.89},
+		},
+		Destination: models.CommuteLocation{
+			Point: models.Point{Lat: 52.31, Lon: 4.76},
+		},
+		DaysOfWeek:                []int{1, 2, 3, 4, 5},
+		PreferredArrivalTimeLocal: "09:00",
+	}
+	body, _ := json.Marshal(input)
+
+	createReq := httptest.NewRequest(http.MethodPost, "/v1/me/commutes", bytes.NewReader(body))
+	createReq.Header.Set("Content-Type", "application/json")
+	addAuthHeader(t, createReq)
+	createW := httptest.NewRecorder()
+	router.ServeHTTP(createW, createReq)
+	require.Equal(t, http.StatusCreated, createW.Code)
+
+	var created models.Commute
+	err := json.Unmarshal(createW.Body.Bytes(), &created)
+	require.NoError(t, err)
+
+	// Now get the commute
+	req := httptest.NewRequest(http.MethodGet, "/v1/me/commutes/"+created.ID, http.NoBody)
 	addAuthHeader(t, req)
 	w := httptest.NewRecorder()
 
@@ -288,22 +322,69 @@ func TestRouter_GetCommute(t *testing.T) {
 	assert.Equal(t, http.StatusOK, w.Code)
 
 	var commute models.Commute
-	err := json.Unmarshal(w.Body.Bytes(), &commute)
+	err = json.Unmarshal(w.Body.Bytes(), &commute)
 	require.NoError(t, err)
 
-	assert.Equal(t, "cmt_test123", commute.ID)
+	assert.Equal(t, created.ID, commute.ID)
+	assert.Equal(t, "Test Commute", commute.Label)
+}
+
+func TestRouter_GetCommute_NotFound(t *testing.T) {
+	router := newTestRouter()
+
+	req := httptest.NewRequest(http.MethodGet, "/v1/me/commutes/cmt_nonexistent", http.NoBody)
+	addAuthHeader(t, req)
+	w := httptest.NewRecorder()
+
+	router.ServeHTTP(w, req)
+
+	assert.Equal(t, http.StatusNotFound, w.Code)
 }
 
 func TestRouter_DeleteCommute(t *testing.T) {
 	router := newTestRouter()
 
-	req := httptest.NewRequest(http.MethodDelete, "/v1/me/commutes/cmt_test123", http.NoBody)
+	// First, create a commute
+	input := models.CommuteCreateRequest{
+		Label: "To Delete",
+		Origin: models.CommuteLocation{
+			Point: models.Point{Lat: 52.37, Lon: 4.89},
+		},
+		Destination: models.CommuteLocation{
+			Point: models.Point{Lat: 52.31, Lon: 4.76},
+		},
+		DaysOfWeek:                []int{1, 2, 3, 4, 5},
+		PreferredArrivalTimeLocal: "09:00",
+	}
+	body, _ := json.Marshal(input)
+
+	createReq := httptest.NewRequest(http.MethodPost, "/v1/me/commutes", bytes.NewReader(body))
+	createReq.Header.Set("Content-Type", "application/json")
+	addAuthHeader(t, createReq)
+	createW := httptest.NewRecorder()
+	router.ServeHTTP(createW, createReq)
+	require.Equal(t, http.StatusCreated, createW.Code)
+
+	var created models.Commute
+	err := json.Unmarshal(createW.Body.Bytes(), &created)
+	require.NoError(t, err)
+
+	// Now delete the commute
+	req := httptest.NewRequest(http.MethodDelete, "/v1/me/commutes/"+created.ID, http.NoBody)
 	addAuthHeader(t, req)
 	w := httptest.NewRecorder()
 
 	router.ServeHTTP(w, req)
 
 	assert.Equal(t, http.StatusNoContent, w.Code)
+
+	// Verify it's deleted by trying to get it
+	getReq := httptest.NewRequest(http.MethodGet, "/v1/me/commutes/"+created.ID, http.NoBody)
+	addAuthHeader(t, getReq)
+	getW := httptest.NewRecorder()
+	router.ServeHTTP(getW, getReq)
+
+	assert.Equal(t, http.StatusNotFound, getW.Code)
 }
 
 func TestRouter_ComputeRoutes(t *testing.T) {
