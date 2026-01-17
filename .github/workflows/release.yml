@@ -111,21 +111,21 @@ jobs:
           docker push ${IMAGE}:${VERSION}
           docker push ${IMAGE}:latest
 
-      - name: Build and push Worker image
-        run: |
-          VERSION="${{ needs.prepare.outputs.version }}"
-          IMAGE="${{ env.REGISTRY }}/breatheroute/breatheroute/worker"
-
-          docker build \
-            --build-arg VERSION=${VERSION} \
-            --build-arg BUILD_TIME=$(date -u +"%Y-%m-%dT%H:%M:%SZ") \
-            -t ${IMAGE}:${VERSION} \
-            -t ${IMAGE}:latest \
-            -f Dockerfile.worker \
-            .
-
-          docker push ${IMAGE}:${VERSION}
-          docker push ${IMAGE}:latest
+#      - name: Build and push Worker image
+#        run: |
+#          VERSION="${{ needs.prepare.outputs.version }}"
+#          IMAGE="${{ env.REGISTRY }}/breatheroute/breatheroute/worker"
+#
+#          docker build \
+#            --build-arg VERSION=${VERSION} \
+#            --build-arg BUILD_TIME=$(date -u +"%Y-%m-%dT%H:%M:%SZ") \
+#            -t ${IMAGE}:${VERSION} \
+#            -t ${IMAGE}:latest \
+#            -f Dockerfile.worker \
+#            .
+#
+#          docker push ${IMAGE}:${VERSION}
+#          docker push ${IMAGE}:latest
 
       - name: Deploy API to production
         uses: google-github-actions/deploy-cloudrun@v2
@@ -136,14 +136,14 @@ jobs:
           project_id: breatheroute
           tag: ${{ needs.prepare.outputs.version_tag }}
 
-      - name: Deploy Worker to production
-        uses: google-github-actions/deploy-cloudrun@v2
-        with:
-          service: breatheroute-prod-worker
-          region: ${{ env.REGION }}
-          image: ${{ env.REGISTRY }}/breatheroute/breatheroute/worker:${{ needs.prepare.outputs.version }}
-          project_id: breatheroute
-          tag: ${{ needs.prepare.outputs.version_tag }}
+#      - name: Deploy Worker to production
+#        uses: google-github-actions/deploy-cloudrun@v2
+#        with:
+#          service: breatheroute-prod-worker
+#          region: ${{ env.REGION }}
+#          image: ${{ env.REGISTRY }}/breatheroute/breatheroute/worker:${{ needs.prepare.outputs.version }}
+#          project_id: breatheroute
+#          tag: ${{ needs.prepare.outputs.version_tag }}
 
   release-ios:
     needs: prepare
