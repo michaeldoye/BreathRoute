@@ -116,6 +116,73 @@ resource "google_secret_manager_secret" "webhook_signing_secret" {
 }
 
 # -----------------------------------------------------------------------------
+# Initial Secret Versions (placeholders - update with real values)
+# -----------------------------------------------------------------------------
+
+resource "google_secret_manager_secret_version" "db_password" {
+  secret      = google_secret_manager_secret.db_password.id
+  secret_data = "PLACEHOLDER_UPDATE_ME"
+
+  lifecycle {
+    ignore_changes = [secret_data] # Don't overwrite after manual update
+  }
+}
+
+resource "google_secret_manager_secret_version" "jwt_signing_key" {
+  secret      = google_secret_manager_secret.jwt_signing_key.id
+  secret_data = "PLACEHOLDER_UPDATE_ME"
+
+  lifecycle {
+    ignore_changes = [secret_data]
+  }
+}
+
+resource "google_secret_manager_secret_version" "apns_key" {
+  secret      = google_secret_manager_secret.apns_key.id
+  secret_data = "PLACEHOLDER_UPDATE_ME"
+
+  lifecycle {
+    ignore_changes = [secret_data]
+  }
+}
+
+resource "google_secret_manager_secret_version" "luchtmeetnet_api_key" {
+  secret      = google_secret_manager_secret.luchtmeetnet_api_key.id
+  secret_data = "PLACEHOLDER_UPDATE_ME"
+
+  lifecycle {
+    ignore_changes = [secret_data]
+  }
+}
+
+resource "google_secret_manager_secret_version" "ns_api_key" {
+  secret      = google_secret_manager_secret.ns_api_key.id
+  secret_data = "PLACEHOLDER_UPDATE_ME"
+
+  lifecycle {
+    ignore_changes = [secret_data]
+  }
+}
+
+resource "google_secret_manager_secret_version" "pollen_api_key" {
+  secret      = google_secret_manager_secret.pollen_api_key.id
+  secret_data = "PLACEHOLDER_UPDATE_ME"
+
+  lifecycle {
+    ignore_changes = [secret_data]
+  }
+}
+
+resource "google_secret_manager_secret_version" "webhook_signing_secret" {
+  secret      = google_secret_manager_secret.webhook_signing_secret.id
+  secret_data = "PLACEHOLDER_UPDATE_ME"
+
+  lifecycle {
+    ignore_changes = [secret_data]
+  }
+}
+
+# -----------------------------------------------------------------------------
 # IAM bindings for secret access
 # -----------------------------------------------------------------------------
 

@@ -149,7 +149,7 @@ resource "google_pubsub_subscription" "gdpr_export" {
 
   dead_letter_policy {
     dead_letter_topic     = google_pubsub_topic.dead_letter.id
-    max_delivery_attempts = 3
+    max_delivery_attempts = 5 # Minimum allowed is 5
   }
 
   expiration_policy {
@@ -173,7 +173,7 @@ resource "google_pubsub_subscription" "gdpr_deletion" {
 
   dead_letter_policy {
     dead_letter_topic     = google_pubsub_topic.dead_letter.id
-    max_delivery_attempts = 3
+    max_delivery_attempts = 5 # Minimum allowed is 5
   }
 
   expiration_policy {
