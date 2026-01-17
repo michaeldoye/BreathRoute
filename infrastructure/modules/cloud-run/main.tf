@@ -55,7 +55,7 @@ resource "google_cloud_run_v2_service" "main" {
           name = env.key
           value_source {
             secret_key_ref {
-              secret  = env.value.secret_id
+              secret  = "projects/${var.project_id}/secrets/${env.value.secret_id}"
               version = env.value.version
             }
           }

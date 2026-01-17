@@ -25,6 +25,7 @@ resource "google_sql_database_instance" "main" {
     ip_configuration {
       ipv4_enabled    = false
       private_network = var.private_network
+      require_ssl     = true
     }
 
     backup_configuration {
@@ -63,6 +64,11 @@ resource "google_sql_database_instance" "main" {
     database_flags {
       name  = "log_lock_waits"
       value = "on"
+    }
+
+    database_flags {
+      name  = "log_temp_files"
+      value = "0" # Log all temp files
     }
 
     insights_config {

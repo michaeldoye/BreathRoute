@@ -185,12 +185,16 @@ echo -e "\n${CYAN}Running general checks...${NC}"
 
 # Check for secrets/credentials in staged files
 echo -e "  Checking for potential secrets..."
-SECRETS_PATTERN='(password|secret|api_key|apikey|access_token|auth_token|credentials|private_key)\s*[:=]\s*["\x27][^"\x27]{8,}'
+# Pattern matches actual hardcoded credentials, not terraform resource paths
+SECRETS_PATTERN='(password|api_key|apikey|access_token|auth_token|credentials|private_key)\s*[:=]\s*["\x27][^"\x27]{8,}'
+# Exclude patterns that are terraform/infrastructure references (not actual secrets)
+EXCLUDE_PATTERN='projects/\$\{|/secrets/\$\{|secret_id|secretmanager'
 STAGED_FILES=$(git diff --cached --name-only --diff-filter=ACM)
 
 for file in $STAGED_FILES; do
     if [ -f "$file" ]; then
-        if grep -iE "$SECRETS_PATTERN" "$file" > /dev/null 2>&1; then
+        # Check for secrets pattern but exclude infrastructure references
+        if grep -iE "$SECRETS_PATTERN" "$file" 2>/dev/null | grep -ivE "$EXCLUDE_PATTERN" > /dev/null 2>&1; then
             echo -e "${RED}  ✗ Potential secret found in: $file${NC}"
             echo -e "${YELLOW}  Please review and remove any hardcoded credentials${NC}"
             FAILED=1

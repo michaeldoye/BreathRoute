@@ -3,6 +3,11 @@
 # Topics and subscriptions for background job processing
 # -----------------------------------------------------------------------------
 
+# Get project number for Pub/Sub service agent
+data "google_project" "current" {
+  project_id = var.project_id
+}
+
 # Provider refresh topic (hourly AQ/pollen refresh)
 resource "google_pubsub_topic" "provider_refresh" {
   project = var.project_id
@@ -149,7 +154,7 @@ resource "google_pubsub_subscription" "gdpr_export" {
 
   dead_letter_policy {
     dead_letter_topic     = google_pubsub_topic.dead_letter.id
-    max_delivery_attempts = 3
+    max_delivery_attempts = 5 # Minimum allowed is 5
   }
 
   expiration_policy {
@@ -173,7 +178,7 @@ resource "google_pubsub_subscription" "gdpr_deletion" {
 
   dead_letter_policy {
     dead_letter_topic     = google_pubsub_topic.dead_letter.id
-    max_delivery_attempts = 3
+    max_delivery_attempts = 5 # Minimum allowed is 5
   }
 
   expiration_policy {
@@ -232,4 +237,51 @@ resource "google_pubsub_subscription_iam_member" "worker_gdpr_deletion" {
   subscription = google_pubsub_subscription.gdpr_deletion.name
   role         = "roles/pubsub.subscriber"
   member       = "serviceAccount:${var.worker_service_account_email}"
+}
+
+# -----------------------------------------------------------------------------
+# Dead Letter IAM - Pub/Sub service agent needs publish permission
+# Required for dead letter policies to work
+# -----------------------------------------------------------------------------
+
+resource "google_pubsub_topic_iam_member" "pubsub_agent_dead_letter_publisher" {
+  project = var.project_id
+  topic   = google_pubsub_topic.dead_letter.name
+  role    = "roles/pubsub.publisher"
+  member  = "serviceAccount:service-${data.google_project.current.number}@gcp-sa-pubsub.iam.gserviceaccount.com"
+}
+
+resource "google_pubsub_subscription_iam_member" "pubsub_agent_provider_refresh_subscriber" {
+  project      = var.project_id
+  subscription = google_pubsub_subscription.provider_refresh.name
+  role         = "roles/pubsub.subscriber"
+  member       = "serviceAccount:service-${data.google_project.current.number}@gcp-sa-pubsub.iam.gserviceaccount.com"
+}
+
+resource "google_pubsub_subscription_iam_member" "pubsub_agent_alert_evaluation_subscriber" {
+  project      = var.project_id
+  subscription = google_pubsub_subscription.alert_evaluation.name
+  role         = "roles/pubsub.subscriber"
+  member       = "serviceAccount:service-${data.google_project.current.number}@gcp-sa-pubsub.iam.gserviceaccount.com"
+}
+
+resource "google_pubsub_subscription_iam_member" "pubsub_agent_webhook_delivery_subscriber" {
+  project      = var.project_id
+  subscription = google_pubsub_subscription.webhook_delivery.name
+  role         = "roles/pubsub.subscriber"
+  member       = "serviceAccount:service-${data.google_project.current.number}@gcp-sa-pubsub.iam.gserviceaccount.com"
+}
+
+resource "google_pubsub_subscription_iam_member" "pubsub_agent_gdpr_export_subscriber" {
+  project      = var.project_id
+  subscription = google_pubsub_subscription.gdpr_export.name
+  role         = "roles/pubsub.subscriber"
+  member       = "serviceAccount:service-${data.google_project.current.number}@gcp-sa-pubsub.iam.gserviceaccount.com"
+}
+
+resource "google_pubsub_subscription_iam_member" "pubsub_agent_gdpr_deletion_subscriber" {
+  project      = var.project_id
+  subscription = google_pubsub_subscription.gdpr_deletion.name
+  role         = "roles/pubsub.subscriber"
+  member       = "serviceAccount:service-${data.google_project.current.number}@gcp-sa-pubsub.iam.gserviceaccount.com"
 }
