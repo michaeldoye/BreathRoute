@@ -28,6 +28,24 @@ import (
 	"github.com/breatheroute/breatheroute/internal/api/models"
 )
 
+// TransportMode represents the user's preferred transport mode.
+type TransportMode string
+
+const (
+	TransportModeBike    TransportMode = "BIKE"
+	TransportModeWalk    TransportMode = "WALK"
+	TransportModeTransit TransportMode = "TRANSIT"
+)
+
+// ExposureSensitivity represents the user's sensitivity to air quality exposure.
+type ExposureSensitivity string
+
+const (
+	ExposureSensitivityLow    ExposureSensitivity = "LOW"
+	ExposureSensitivityMedium ExposureSensitivity = "MEDIUM"
+	ExposureSensitivityHigh   ExposureSensitivity = "HIGH"
+)
+
 // User represents a user's complete profile and settings.
 type User struct {
 	// ID is the unique user identifier (format: usr_XXXX).
@@ -59,6 +77,12 @@ type Profile struct {
 
 	// Constraints define routing preferences.
 	Constraints RouteConstraints
+
+	// PreferredMode is the user's preferred transport mode (BIKE, WALK, TRANSIT).
+	PreferredMode TransportMode
+
+	// ExposureSensitivity is the user's sensitivity to air quality exposure (LOW, MEDIUM, HIGH).
+	ExposureSensitivity ExposureSensitivity
 
 	// CreatedAt is when the profile was created.
 	CreatedAt time.Time
@@ -119,8 +143,10 @@ func DefaultProfile() *Profile {
 		Constraints: RouteConstraints{
 			AvoidMajorRoads: false,
 		},
-		CreatedAt: now,
-		UpdatedAt: now,
+		PreferredMode:       TransportModeBike,
+		ExposureSensitivity: ExposureSensitivityMedium,
+		CreatedAt:           now,
+		UpdatedAt:           now,
 	}
 }
 

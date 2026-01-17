@@ -28,6 +28,7 @@ func (r *PostgresRepository) Get(ctx context.Context, id string) (*User, error) 
 			user_id, locale, units,
 			weight_no2, weight_pm25, weight_o3, weight_pollen,
 			avoid_major_roads, prefer_parks, max_extra_minutes_vs_fastest, max_transfers,
+			preferred_mode, exposure_sensitivity,
 			consent_analytics, consent_marketing, consent_push_notifications, consents_updated_at,
 			created_at, updated_at
 		FROM user_profiles
@@ -46,6 +47,8 @@ func (r *PostgresRepository) Get(ctx context.Context, id string) (*User, error) 
 		preferParks              *bool
 		maxExtraMinutesVsFastest *int
 		maxTransfers             *int
+		preferredMode            TransportMode
+		exposureSensitivity      ExposureSensitivity
 		consentAnalytics         bool
 		consentMarketing         bool
 		consentPushNotifications bool
@@ -66,6 +69,8 @@ func (r *PostgresRepository) Get(ctx context.Context, id string) (*User, error) 
 		&preferParks,
 		&maxExtraMinutesVsFastest,
 		&maxTransfers,
+		&preferredMode,
+		&exposureSensitivity,
 		&consentAnalytics,
 		&consentMarketing,
 		&consentPushNotifications,
@@ -97,8 +102,10 @@ func (r *PostgresRepository) Get(ctx context.Context, id string) (*User, error) 
 				MaxExtraMinutesVsFastest: maxExtraMinutesVsFastest,
 				MaxTransfers:             maxTransfers,
 			},
-			CreatedAt: createdAt,
-			UpdatedAt: updatedAt,
+			PreferredMode:       preferredMode,
+			ExposureSensitivity: exposureSensitivity,
+			CreatedAt:           createdAt,
+			UpdatedAt:           updatedAt,
 		},
 		Consents: &Consents{
 			Analytics:         consentAnalytics,
@@ -120,9 +127,10 @@ func (r *PostgresRepository) Create(ctx context.Context, user *User) error {
 			user_id, locale, units,
 			weight_no2, weight_pm25, weight_o3, weight_pollen,
 			avoid_major_roads, prefer_parks, max_extra_minutes_vs_fastest, max_transfers,
+			preferred_mode, exposure_sensitivity,
 			consent_analytics, consent_marketing, consent_push_notifications, consents_updated_at,
 			created_at, updated_at
-		) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16, $17)
+		) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16, $17, $18, $19)
 	`
 
 	profile := user.Profile
@@ -146,6 +154,8 @@ func (r *PostgresRepository) Create(ctx context.Context, user *User) error {
 		profile.Constraints.PreferParks,
 		profile.Constraints.MaxExtraMinutesVsFastest,
 		profile.Constraints.MaxTransfers,
+		profile.PreferredMode,
+		profile.ExposureSensitivity,
 		consents.Analytics,
 		consents.Marketing,
 		consents.PushNotifications,
@@ -170,11 +180,13 @@ func (r *PostgresRepository) Update(ctx context.Context, user *User) error {
 			prefer_parks = $9,
 			max_extra_minutes_vs_fastest = $10,
 			max_transfers = $11,
-			consent_analytics = $12,
-			consent_marketing = $13,
-			consent_push_notifications = $14,
-			consents_updated_at = $15,
-			updated_at = $16
+			preferred_mode = $12,
+			exposure_sensitivity = $13,
+			consent_analytics = $14,
+			consent_marketing = $15,
+			consent_push_notifications = $16,
+			consents_updated_at = $17,
+			updated_at = $18
 		WHERE user_id = $1
 	`
 
@@ -199,6 +211,8 @@ func (r *PostgresRepository) Update(ctx context.Context, user *User) error {
 		profile.Constraints.PreferParks,
 		profile.Constraints.MaxExtraMinutesVsFastest,
 		profile.Constraints.MaxTransfers,
+		profile.PreferredMode,
+		profile.ExposureSensitivity,
 		consents.Analytics,
 		consents.Marketing,
 		consents.PushNotifications,
@@ -231,9 +245,10 @@ func (r *PostgresRepository) CreateOrUpdate(ctx context.Context, user *User) err
 			user_id, locale, units,
 			weight_no2, weight_pm25, weight_o3, weight_pollen,
 			avoid_major_roads, prefer_parks, max_extra_minutes_vs_fastest, max_transfers,
+			preferred_mode, exposure_sensitivity,
 			consent_analytics, consent_marketing, consent_push_notifications, consents_updated_at,
 			created_at, updated_at
-		) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16, $17)
+		) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16, $17, $18, $19)
 		ON CONFLICT (user_id) DO UPDATE SET
 			locale = EXCLUDED.locale,
 			units = EXCLUDED.units,
@@ -245,6 +260,8 @@ func (r *PostgresRepository) CreateOrUpdate(ctx context.Context, user *User) err
 			prefer_parks = EXCLUDED.prefer_parks,
 			max_extra_minutes_vs_fastest = EXCLUDED.max_extra_minutes_vs_fastest,
 			max_transfers = EXCLUDED.max_transfers,
+			preferred_mode = EXCLUDED.preferred_mode,
+			exposure_sensitivity = EXCLUDED.exposure_sensitivity,
 			consent_analytics = EXCLUDED.consent_analytics,
 			consent_marketing = EXCLUDED.consent_marketing,
 			consent_push_notifications = EXCLUDED.consent_push_notifications,
@@ -273,6 +290,8 @@ func (r *PostgresRepository) CreateOrUpdate(ctx context.Context, user *User) err
 		profile.Constraints.PreferParks,
 		profile.Constraints.MaxExtraMinutesVsFastest,
 		profile.Constraints.MaxTransfers,
+		profile.PreferredMode,
+		profile.ExposureSensitivity,
 		consents.Analytics,
 		consents.Marketing,
 		consents.PushNotifications,

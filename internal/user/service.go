@@ -91,9 +91,8 @@ func (s *Service) UpsertProfile(ctx context.Context, userID string, input *model
 	now := time.Now()
 
 	if user.Profile == nil {
-		user.Profile = &Profile{
-			CreatedAt: now,
-		}
+		user.Profile = DefaultProfile()
+		user.Profile.CreatedAt = now
 	}
 
 	// Update profile
@@ -109,6 +108,15 @@ func (s *Service) UpsertProfile(ctx context.Context, userID string, input *model
 		MaxExtraMinutesVsFastest: input.Constraints.MaxExtraMinutesVsFastest,
 		MaxTransfers:             input.Constraints.MaxTransfers,
 	}
+
+	// Update routing preferences if provided
+	if input.PreferredMode != nil {
+		user.Profile.PreferredMode = TransportMode(*input.PreferredMode)
+	}
+	if input.ExposureSensitivity != nil {
+		user.Profile.ExposureSensitivity = ExposureSensitivity(*input.ExposureSensitivity)
+	}
+
 	user.Profile.UpdatedAt = now
 	user.UpdatedAt = now
 
@@ -221,7 +229,9 @@ func (s *Service) toAPIProfile(p *Profile) *models.Profile {
 			MaxExtraMinutesVsFastest: p.Constraints.MaxExtraMinutesVsFastest,
 			MaxTransfers:             p.Constraints.MaxTransfers,
 		},
-		CreatedAt: models.Timestamp(p.CreatedAt),
-		UpdatedAt: models.Timestamp(p.UpdatedAt),
+		PreferredMode:       models.TransportMode(p.PreferredMode),
+		ExposureSensitivity: models.ExposureSensitivity(p.ExposureSensitivity),
+		CreatedAt:           models.Timestamp(p.CreatedAt),
+		UpdatedAt:           models.Timestamp(p.UpdatedAt),
 	}
 }
