@@ -16,6 +16,7 @@ import (
 	"github.com/breatheroute/breatheroute/internal/auth"
 	"github.com/breatheroute/breatheroute/internal/commute"
 	"github.com/breatheroute/breatheroute/internal/database"
+	"github.com/breatheroute/breatheroute/internal/device"
 	"github.com/breatheroute/breatheroute/internal/featureflags"
 	"github.com/breatheroute/breatheroute/internal/telemetry"
 	"github.com/breatheroute/breatheroute/internal/user"
@@ -152,6 +153,11 @@ func main() {
 	commuteService := commute.NewService(commuteRepo)
 	log.Info().Msg("commute service initialized")
 
+	// Initialize device repository and service
+	deviceRepo := device.NewPostgresRepository(pool)
+	deviceService := device.NewService(deviceRepo)
+	log.Info().Msg("device service initialized")
+
 	// Initialize feature flags repository and service
 	ffRepo := featureflags.NewPostgresRepository(pool)
 	ffService := featureflags.NewService(featureflags.ServiceConfig{
@@ -178,6 +184,7 @@ func main() {
 		UserService:        userService,
 		FeatureFlagService: ffService,
 		CommuteService:     commuteService,
+		DeviceService:      deviceService,
 		DevMode:            devMode,
 	})
 

@@ -18,6 +18,7 @@ import (
 	"github.com/breatheroute/breatheroute/internal/api/models"
 	"github.com/breatheroute/breatheroute/internal/auth"
 	"github.com/breatheroute/breatheroute/internal/commute"
+	"github.com/breatheroute/breatheroute/internal/device"
 	"github.com/breatheroute/breatheroute/internal/user"
 )
 
@@ -85,6 +86,12 @@ func testCommuteService() *commute.Service {
 	return commute.NewService(repo)
 }
 
+// testDeviceService creates a device service for testing.
+func testDeviceService() *device.Service {
+	repo := device.NewInMemoryRepository()
+	return device.NewService(repo)
+}
+
 func newTestRouter() http.Handler {
 	logger := zerolog.New(io.Discard)
 	return api.NewRouter(api.RouterConfig{
@@ -94,6 +101,7 @@ func newTestRouter() http.Handler {
 		AuthService:    testAuthService(),
 		UserService:    testUserService(),
 		CommuteService: testCommuteService(),
+		DeviceService:  testDeviceService(),
 	})
 }
 

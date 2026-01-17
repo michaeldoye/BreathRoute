@@ -2,90 +2,126 @@ package handler
 
 import (
 	"encoding/json"
+	"errors"
 	"fmt"
 	"net/http"
-	"time"
 
 	"github.com/go-chi/chi/v5"
 
+	"github.com/breatheroute/breatheroute/internal/api/middleware"
 	"github.com/breatheroute/breatheroute/internal/api/models"
 	"github.com/breatheroute/breatheroute/internal/api/response"
+	"github.com/breatheroute/breatheroute/internal/device"
 )
 
 // DeviceHandler handles device endpoints.
-type DeviceHandler struct{}
+type DeviceHandler struct {
+	service *device.Service
+}
 
 // NewDeviceHandler creates a new DeviceHandler.
-func NewDeviceHandler() *DeviceHandler {
-	return &DeviceHandler{}
+func NewDeviceHandler(service *device.Service) *DeviceHandler {
+	return &DeviceHandler{service: service}
 }
 
 // ListDevices handles GET /v1/me/devices - list registered devices.
 func (h *DeviceHandler) ListDevices(w http.ResponseWriter, r *http.Request) {
-	// TODO: Get actual devices from database
-	now := models.Timestamp(time.Now())
-	devices := models.PagedDevices{
-		Items: []models.Device{
-			{
-				ID:          "dev_01HY4ABCDEF0123456789",
-				Platform:    models.PushPlatformAPNS,
-				TokenLast4:  strPtr("A1b2"),
-				DeviceModel: strPtr("iPhone15,3"),
-				OSVersion:   strPtr("iOS 18.2"),
-				AppVersion:  strPtr("1.3.0"),
-				CreatedAt:   now,
-				UpdatedAt:   now,
-			},
-		},
-		Meta: models.PagedResponseMeta{
-			Limit: 50,
-		},
+	userID := middleware.GetUserID(r.Context())
+	if userID == "" {
+		response.Unauthorized(w, r, "authentication required")
+		return
 	}
+
+	devices, err := h.service.List(r.Context(), userID, 50)
+	if err != nil {
+		response.InternalError(w, r, "failed to list devices")
+		return
+	}
+
 	response.JSON(w, r, http.StatusOK, devices)
 }
 
 // RegisterDevice handles POST /v1/me/devices - register or update device.
 func (h *DeviceHandler) RegisterDevice(w http.ResponseWriter, r *http.Request) {
+	userID := middleware.GetUserID(r.Context())
+	if userID == "" {
+		response.Unauthorized(w, r, "authentication required")
+		return
+	}
+
 	var input models.DeviceRegisterRequest
 	if err := json.NewDecoder(r.Body).Decode(&input); err != nil {
 		response.BadRequest(w, r, "invalid JSON body", nil)
 		return
 	}
 
-	// TODO: Validate input and save/update device in database
-	now := models.Timestamp(time.Now())
-
-	// Get last 4 characters of token
-	var tokenLast4 *string
-	if len(input.Token) >= 4 {
-		last4 := input.Token[len(input.Token)-4:]
-		tokenLast4 = &last4
+	// Validate input
+	if fieldErrors := h.validateRegisterInput(&input); len(fieldErrors) > 0 {
+		response.BadRequest(w, r, "validation failed", fieldErrors)
+		return
 	}
 
-	device := models.Device{
-		ID:          input.DeviceID,
-		Platform:    input.Platform,
-		TokenLast4:  tokenLast4,
-		DeviceModel: input.DeviceModel,
-		OSVersion:   input.OSVersion,
-		AppVersion:  input.AppVersion,
-		CreatedAt:   now,
-		UpdatedAt:   now,
+	result, created, err := h.service.Register(r.Context(), userID, &input)
+	if err != nil {
+		response.InternalError(w, r, "failed to register device")
+		return
 	}
 
-	// TODO: Check if device already exists to return 200 vs 201
 	location := fmt.Sprintf("/v1/me/devices/%s", input.DeviceID)
-	response.Created(w, r, location, device)
+	if created {
+		response.Created(w, r, location, result)
+	} else {
+		w.Header().Set("Location", location)
+		response.JSON(w, r, http.StatusOK, result)
+	}
 }
 
 // UnregisterDevice handles DELETE /v1/me/devices/{deviceId} - unregister device.
 func (h *DeviceHandler) UnregisterDevice(w http.ResponseWriter, r *http.Request) {
+	userID := middleware.GetUserID(r.Context())
+	if userID == "" {
+		response.Unauthorized(w, r, "authentication required")
+		return
+	}
+
 	deviceID := chi.URLParam(r, "deviceId")
 	if deviceID == "" {
 		response.BadRequest(w, r, "deviceId is required", nil)
 		return
 	}
 
-	// TODO: Delete device from database
+	err := h.service.Unregister(r.Context(), userID, deviceID)
+	if err != nil {
+		if errors.Is(err, device.ErrDeviceNotFound) {
+			response.NotFound(w, r, "device not found")
+			return
+		}
+		response.InternalError(w, r, "failed to unregister device")
+		return
+	}
+
 	response.NoContent(w, r)
+}
+
+// validateRegisterInput validates the device registration input.
+func (h *DeviceHandler) validateRegisterInput(input *models.DeviceRegisterRequest) []models.FieldError {
+	var errs []models.FieldError
+
+	if input.DeviceID == "" {
+		errs = append(errs, models.FieldError{Field: "deviceId", Message: "is required"})
+	}
+
+	if input.Platform == "" {
+		errs = append(errs, models.FieldError{Field: "platform", Message: "is required"})
+	} else if input.Platform != models.PushPlatformFCM && input.Platform != models.PushPlatformAPNS {
+		errs = append(errs, models.FieldError{Field: "platform", Message: "must be FCM or APNS"})
+	}
+
+	if input.Token == "" {
+		errs = append(errs, models.FieldError{Field: "token", Message: "is required"})
+	} else if len(input.Token) < 16 {
+		errs = append(errs, models.FieldError{Field: "token", Message: "must be at least 16 characters"})
+	}
+
+	return errs
 }
