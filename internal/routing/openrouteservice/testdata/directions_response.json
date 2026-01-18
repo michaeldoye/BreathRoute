@@ -1,0 +1,82 @@
+{
+  "routes": [
+    {
+      "summary": {
+        "distance": 12345.6,
+        "duration": 2456.7
+      },
+      "segments": [
+        {
+          "distance": 12345.6,
+          "duration": 2456.7,
+          "steps": [
+            {
+              "distance": 500.0,
+              "duration": 120.0,
+              "type": 0,
+              "instruction": "Head north on Damrak",
+              "name": "Damrak",
+              "way_points": [0, 5]
+            },
+            {
+              "distance": 1200.0,
+              "duration": 240.0,
+              "type": 1,
+              "instruction": "Turn right onto Prins Hendrikkade",
+              "name": "Prins Hendrikkade",
+              "way_points": [5, 15]
+            },
+            {
+              "distance": 10645.6,
+              "duration": 2096.7,
+              "type": 6,
+              "instruction": "Continue on A2",
+              "name": "A2",
+              "way_points": [15, 100]
+            }
+          ]
+        }
+      ],
+      "bbox": [4.8900, 52.0900, 5.1300, 52.3800],
+      "geometry": "_p~iF~ps|U_ulLnnqC_mqNvxq`@"
+    },
+    {
+      "summary": {
+        "distance": 13500.0,
+        "duration": 2700.0
+      },
+      "segments": [
+        {
+          "distance": 13500.0,
+          "duration": 2700.0,
+          "steps": [
+            {
+              "distance": 600.0,
+              "duration": 144.0,
+              "type": 0,
+              "instruction": "Head east on Nieuwezijds Voorburgwal",
+              "name": "Nieuwezijds Voorburgwal",
+              "way_points": [0, 6]
+            },
+            {
+              "distance": 12900.0,
+              "duration": 2556.0,
+              "type": 6,
+              "instruction": "Continue on alternative route",
+              "name": "",
+              "way_points": [6, 110]
+            }
+          ]
+        }
+      ],
+      "bbox": [4.8850, 52.0850, 5.1400, 52.3850],
+      "geometry": "_p~iF~ps|U_glLnoqC_oqNvyq`@"
+    }
+  ],
+  "bbox": [4.8850, 52.0850, 5.1400, 52.3850],
+  "metadata": {
+    "attribution": "openrouteservice.org | OpenStreetMap contributors",
+    "service": "routing",
+    "timestamp": 1705000000000
+  }
+}
