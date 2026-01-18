@@ -43,6 +43,10 @@ type ClientConfig struct {
 	// CircuitBreaker is the circuit breaker configuration.
 	// If nil, uses DefaultCircuitBreakerConfig.
 	CircuitBreaker *CircuitBreakerConfig
+
+	// Registry is the provider registry for health tracking.
+	// If set, the client will register itself and record success/failure.
+	Registry *Registry
 }
 
 // DefaultClientConfig returns sensible defaults for the resilient client.
@@ -63,6 +67,7 @@ type Client struct {
 	httpClient     *http.Client
 	circuitBreaker *gobreaker.CircuitBreaker[*http.Response]
 	config         ClientConfig
+	registry       *Registry
 }
 
 // NewClient creates a new resilient HTTP client.
@@ -90,13 +95,21 @@ func NewClient(cfg ClientConfig) *Client {
 		cb = NewCircuitBreaker[*http.Response](defaultCB) //nolint:bodyclose // type param, not response
 	}
 
-	return &Client{
+	client := &Client{
 		httpClient: &http.Client{
 			Timeout: cfg.Timeout,
 		},
 		circuitBreaker: cb,
 		config:         cfg,
+		registry:       cfg.Registry,
 	}
+
+	// Register with registry if provided
+	if cfg.Registry != nil {
+		cfg.Registry.Register(cfg.Name, client)
+	}
+
+	return client
 }
 
 // Do executes an HTTP request with circuit breaker protection and retry logic.
@@ -164,11 +177,20 @@ func (c *Client) DoWithContext(ctx context.Context, req *http.Request) (*http.Re
 
 	err := backoff.Retry(operation, backoffWithContext)
 	if err != nil {
+		// Record failure in registry
+		if c.registry != nil {
+			c.registry.RecordFailure(c.config.Name, err)
+		}
 		// If we have a last response (e.g., 5xx that exhausted retries), return it
 		if lastResp != nil {
 			return lastResp, nil
 		}
 		return nil, err
+	}
+
+	// Record success in registry
+	if c.registry != nil {
+		c.registry.RecordSuccess(c.config.Name)
 	}
 
 	return lastResp, nil
@@ -181,6 +203,11 @@ type ServerError struct {
 
 func (e *ServerError) Error() string {
 	return "server error: " + http.StatusText(e.StatusCode)
+}
+
+// Name returns the client name.
+func (c *Client) Name() string {
+	return c.config.Name
 }
 
 // CircuitBreakerState returns the current state of the circuit breaker.
