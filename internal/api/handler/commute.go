@@ -38,7 +38,7 @@ func (h *CommuteHandler) ListCommutes(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	response.JSON(w, r, http.StatusOK, commutes)
+	response.JSON(w, http.StatusOK, commutes)
 }
 
 // CreateCommute handles POST /v1/me/commutes - create a saved commute.
@@ -67,7 +67,7 @@ func (h *CommuteHandler) CreateCommute(w http.ResponseWriter, r *http.Request) {
 	}
 
 	location := fmt.Sprintf("/v1/me/commutes/%s", result.ID)
-	response.Created(w, r, location, result)
+	response.Created(w, location, result)
 }
 
 // GetCommute handles GET /v1/me/commutes/{commuteId} - get a saved commute.
@@ -94,7 +94,7 @@ func (h *CommuteHandler) GetCommute(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	response.JSON(w, r, http.StatusOK, result)
+	response.JSON(w, http.StatusOK, result)
 }
 
 // UpdateCommute handles PUT /v1/me/commutes/{commuteId} - update a saved commute.
@@ -132,7 +132,7 @@ func (h *CommuteHandler) UpdateCommute(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	response.JSON(w, r, http.StatusOK, result)
+	response.JSON(w, http.StatusOK, result)
 }
 
 // DeleteCommute handles DELETE /v1/me/commutes/{commuteId} - delete a saved commute.
@@ -159,5 +159,5 @@ func (h *CommuteHandler) DeleteCommute(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	response.NoContent(w, r)
+	response.NoContent(w)
 }

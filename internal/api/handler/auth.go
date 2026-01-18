@@ -180,5 +180,5 @@ func (h *AuthHandler) DevLogin(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	response.JSON(w, r, http.StatusOK, tokenResp)
+	response.JSON(w, http.StatusOK, tokenResp)
 }

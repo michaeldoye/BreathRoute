@@ -43,7 +43,7 @@ func (h *OpsHandler) HealthCheck(w http.ResponseWriter, r *http.Request) {
 			"buildTime": h.buildTime,
 		},
 	}
-	response.JSON(w, r, http.StatusOK, health)
+	response.JSON(w, http.StatusOK, health)
 }
 
 // ReadinessCheck handles GET /v1/ops/ready - readiness check.
@@ -53,7 +53,7 @@ func (h *OpsHandler) ReadinessCheck(w http.ResponseWriter, r *http.Request) {
 		Status: models.HealthStatusOK,
 		Time:   models.Timestamp(time.Now()),
 	}
-	response.JSON(w, r, http.StatusOK, health)
+	response.JSON(w, http.StatusOK, health)
 }
 
 // SystemStatus handles GET /v1/ops/status - provider and subsystem status.
@@ -83,7 +83,7 @@ func (h *OpsHandler) SystemStatus(w http.ResponseWriter, r *http.Request) {
 		},
 		Providers: providers,
 	}
-	response.JSON(w, r, http.StatusOK, status)
+	response.JSON(w, http.StatusOK, status)
 }
 
 // getProviderStatuses returns the status of all registered providers.

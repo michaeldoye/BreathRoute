@@ -38,7 +38,7 @@ func (h *DeviceHandler) ListDevices(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	response.JSON(w, r, http.StatusOK, devices)
+	response.JSON(w, http.StatusOK, devices)
 }
 
 // RegisterDevice handles POST /v1/me/devices - register or update device.
@@ -69,10 +69,10 @@ func (h *DeviceHandler) RegisterDevice(w http.ResponseWriter, r *http.Request) {
 
 	location := fmt.Sprintf("/v1/me/devices/%s", input.DeviceID)
 	if created {
-		response.Created(w, r, location, result)
+		response.Created(w, location, result)
 	} else {
 		w.Header().Set("Location", location)
-		response.JSON(w, r, http.StatusOK, result)
+		response.JSON(w, http.StatusOK, result)
 	}
 }
 
@@ -100,7 +100,7 @@ func (h *DeviceHandler) UnregisterDevice(w http.ResponseWriter, r *http.Request)
 		return
 	}
 
-	response.NoContent(w, r)
+	response.NoContent(w)
 }
 
 // validateRegisterInput validates the device registration input.
