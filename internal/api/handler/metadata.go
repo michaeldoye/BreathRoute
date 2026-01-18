@@ -17,7 +17,7 @@ func NewMetadataHandler() *MetadataHandler {
 }
 
 // ListAirQualityStations handles GET /v1/metadata/air-quality/stations.
-func (h *MetadataHandler) ListAirQualityStations(w http.ResponseWriter, r *http.Request) {
+func (h *MetadataHandler) ListAirQualityStations(w http.ResponseWriter, _ *http.Request) {
 	// TODO: Get actual stations from database/cache
 	now := models.Timestamp(time.Now())
 	stations := models.PagedStations{
@@ -41,11 +41,11 @@ func (h *MetadataHandler) ListAirQualityStations(w http.ResponseWriter, r *http.
 			Limit: 50,
 		},
 	}
-	response.JSON(w, r, http.StatusOK, stations)
+	response.JSON(w, http.StatusOK, stations)
 }
 
 // GetEnums handles GET /v1/metadata/enums - get enum values used by the API.
-func (h *MetadataHandler) GetEnums(w http.ResponseWriter, r *http.Request) {
+func (h *MetadataHandler) GetEnums(w http.ResponseWriter, _ *http.Request) {
 	enums := models.Enums{
 		Modes: []models.Mode{
 			models.ModeWalk,
@@ -70,5 +70,5 @@ func (h *MetadataHandler) GetEnums(w http.ResponseWriter, r *http.Request) {
 			models.PollutantPollen,
 		},
 	}
-	response.JSON(w, r, http.StatusOK, enums)
+	response.JSON(w, http.StatusOK, enums)
 }

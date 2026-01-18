@@ -94,7 +94,7 @@ func (h *RouteHandler) ComputeRoutes(w http.ResponseWriter, r *http.Request) {
 	}
 
 	w.Header().Set("Cache-Control", "private, max-age=60")
-	response.JSON(w, r, http.StatusOK, resp)
+	response.JSON(w, http.StatusOK, resp)
 }
 
 // computeRoutesForMode computes routes for a specific mode.

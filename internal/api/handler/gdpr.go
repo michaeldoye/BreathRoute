@@ -38,11 +38,11 @@ func (h *GDPRHandler) CreateExportRequest(w http.ResponseWriter, r *http.Request
 	}
 
 	location := fmt.Sprintf("/v1/gdpr/export-requests/%s", requestID)
-	response.Accepted(w, r, location, exportRequest)
+	response.Accepted(w, location, exportRequest)
 }
 
 // ListExportRequests handles GET /v1/gdpr/export-requests - list export requests.
-func (h *GDPRHandler) ListExportRequests(w http.ResponseWriter, r *http.Request) {
+func (h *GDPRHandler) ListExportRequests(w http.ResponseWriter, _ *http.Request) {
 	// TODO: Get actual export requests from database
 	now := models.Timestamp(time.Now())
 	requests := models.PagedExportRequests{
@@ -58,7 +58,7 @@ func (h *GDPRHandler) ListExportRequests(w http.ResponseWriter, r *http.Request)
 			Limit: 50,
 		},
 	}
-	response.JSON(w, r, http.StatusOK, requests)
+	response.JSON(w, http.StatusOK, requests)
 }
 
 // GetExportRequest handles GET /v1/gdpr/export-requests/{exportRequestId}.
@@ -77,7 +77,7 @@ func (h *GDPRHandler) GetExportRequest(w http.ResponseWriter, r *http.Request) {
 		CreatedAt: now,
 		UpdatedAt: now,
 	}
-	response.JSON(w, r, http.StatusOK, exportRequest)
+	response.JSON(w, http.StatusOK, exportRequest)
 }
 
 // CreateDeletionRequest handles POST /v1/gdpr/deletion-requests - create deletion request.
@@ -97,11 +97,11 @@ func (h *GDPRHandler) CreateDeletionRequest(w http.ResponseWriter, r *http.Reque
 	}
 
 	location := fmt.Sprintf("/v1/gdpr/deletion-requests/%s", requestID)
-	response.Accepted(w, r, location, deletionRequest)
+	response.Accepted(w, location, deletionRequest)
 }
 
 // ListDeletionRequests handles GET /v1/gdpr/deletion-requests - list deletion requests.
-func (h *GDPRHandler) ListDeletionRequests(w http.ResponseWriter, r *http.Request) {
+func (h *GDPRHandler) ListDeletionRequests(w http.ResponseWriter, _ *http.Request) {
 	// TODO: Get actual deletion requests from database
 	now := models.Timestamp(time.Now())
 	requests := models.PagedDeletionRequests{
@@ -117,7 +117,7 @@ func (h *GDPRHandler) ListDeletionRequests(w http.ResponseWriter, r *http.Reques
 			Limit: 50,
 		},
 	}
-	response.JSON(w, r, http.StatusOK, requests)
+	response.JSON(w, http.StatusOK, requests)
 }
 
 // GetDeletionRequest handles GET /v1/gdpr/deletion-requests/{deletionRequestId}.
@@ -136,5 +136,5 @@ func (h *GDPRHandler) GetDeletionRequest(w http.ResponseWriter, r *http.Request)
 		CreatedAt: now,
 		UpdatedAt: now,
 	}
-	response.JSON(w, r, http.StatusOK, deletionRequest)
+	response.JSON(w, http.StatusOK, deletionRequest)
 }

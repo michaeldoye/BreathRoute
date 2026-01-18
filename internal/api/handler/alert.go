@@ -51,11 +51,11 @@ func (h *AlertHandler) PreviewDepartureWindows(w http.ResponseWriter, r *http.Re
 		EvaluatedCount: intPtr(13),
 		Objective:      &input.Objective,
 	}
-	response.JSON(w, r, http.StatusOK, resp)
+	response.JSON(w, http.StatusOK, resp)
 }
 
 // ListAlertSubscriptions handles GET /v1/me/alerts/subscriptions - list alert subscriptions.
-func (h *AlertHandler) ListAlertSubscriptions(w http.ResponseWriter, r *http.Request) {
+func (h *AlertHandler) ListAlertSubscriptions(w http.ResponseWriter, _ *http.Request) {
 	// TODO: Get actual subscriptions from database
 	now := models.Timestamp(time.Now())
 	subscriptions := models.PagedAlertSubscriptions{
@@ -85,7 +85,7 @@ func (h *AlertHandler) ListAlertSubscriptions(w http.ResponseWriter, r *http.Req
 			Limit: 50,
 		},
 	}
-	response.JSON(w, r, http.StatusOK, subscriptions)
+	response.JSON(w, http.StatusOK, subscriptions)
 }
 
 // CreateAlertSubscription handles POST /v1/me/alerts/subscriptions - create alert subscription.
@@ -125,7 +125,7 @@ func (h *AlertHandler) CreateAlertSubscription(w http.ResponseWriter, r *http.Re
 	}
 
 	location := fmt.Sprintf("/v1/me/alerts/subscriptions/%s", subscriptionID)
-	response.Created(w, r, location, subscription)
+	response.Created(w, location, subscription)
 }
 
 // GetAlertSubscription handles GET /v1/me/alerts/subscriptions/{subscriptionId}.
@@ -154,7 +154,7 @@ func (h *AlertHandler) GetAlertSubscription(w http.ResponseWriter, r *http.Reque
 		CreatedAt: now,
 		UpdatedAt: now,
 	}
-	response.JSON(w, r, http.StatusOK, subscription)
+	response.JSON(w, http.StatusOK, subscription)
 }
 
 // UpdateAlertSubscription handles PUT /v1/me/alerts/subscriptions/{subscriptionId}.
@@ -197,7 +197,7 @@ func (h *AlertHandler) UpdateAlertSubscription(w http.ResponseWriter, r *http.Re
 		subscription.Objective = *input.Objective
 	}
 
-	response.JSON(w, r, http.StatusOK, subscription)
+	response.JSON(w, http.StatusOK, subscription)
 }
 
 // DeleteAlertSubscription handles DELETE /v1/me/alerts/subscriptions/{subscriptionId}.
@@ -209,7 +209,7 @@ func (h *AlertHandler) DeleteAlertSubscription(w http.ResponseWriter, r *http.Re
 	}
 
 	// TODO: Delete subscription from database
-	response.NoContent(w, r)
+	response.NoContent(w)
 }
 
 func float64Ptr(f float64) *float64 {

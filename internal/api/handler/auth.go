@@ -71,7 +71,7 @@ func (h *AuthHandler) SignInWithApple(w http.ResponseWriter, r *http.Request) {
 	}
 
 	// Return the token response
-	response.JSON(w, r, http.StatusOK, tokenResp)
+	response.JSON(w, http.StatusOK, tokenResp)
 }
 
 // RefreshToken handles POST /v1/auth/refresh - refresh access token.
@@ -116,7 +116,7 @@ func (h *AuthHandler) RefreshToken(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	response.JSON(w, r, http.StatusOK, tokenResp)
+	response.JSON(w, http.StatusOK, tokenResp)
 }
 
 // Logout handles POST /v1/auth/logout - revoke current session.
@@ -142,7 +142,7 @@ func (h *AuthHandler) Logout(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	response.NoContent(w, r)
+	response.NoContent(w)
 }
 
 // LogoutAll handles POST /v1/auth/logout-all - revoke all sessions for the user.
@@ -161,7 +161,7 @@ func (h *AuthHandler) LogoutAll(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	response.NoContent(w, r)
+	response.NoContent(w)
 }
 
 // DevLogin handles POST /v1/auth/dev - development-only authentication.
