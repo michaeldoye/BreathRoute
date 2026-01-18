@@ -8,6 +8,14 @@ This document tracks all implemented features, their intended purpose, and how t
 
 - [API Service](#api-service-ticket-2010)
 - [Observability](#observability-ticket-2007)
+- [Authentication](#authentication-ticket-2008)
+- [API Security Controls](#api-security-controls-ticket-2013)
+- [Air Quality Provider](#air-quality-provider-ticket-2021)
+- [Weather Provider](#weather-provider-ticket-2022)
+- [Pollen Provider](#pollen-provider-ticket-2023)
+- [Transit Provider](#transit-provider-ticket-2024)
+- [Provider Resilience](#provider-resilience-ticket-2025)
+- [Background Refresh Job](#background-refresh-job-ticket-2026)
 - [Planned Features](#planned-features)
 
 ---
@@ -19,7 +27,7 @@ This document tracks all implemented features, their intended purpose, and how t
 
 ### Overview
 
-The API service is built with Go 1.22 and the Chi router, following RESTful conventions. It serves as the primary interface for the iOS app to manage user profiles, commutes, alerts, and route computations.
+The API service is built with Go 1.24 and the Chi router, following RESTful conventions. It serves as the primary interface for the iOS app to manage user profiles, commutes, alerts, and route computations.
 
 ### Features
 
@@ -128,17 +136,6 @@ Client Request
 | **How it works** | Wraps all handlers in a recover block. If a panic occurs, it logs the stack trace, returns a 500 Problem+JSON response, and keeps the server running. |
 | **Location** | `internal/api/middleware/recovery.go` |
 
-```go
-// Panic in handler
-func (h *Handler) DoSomething(w http.ResponseWriter, r *http.Request) {
-    panic("unexpected error") // Would crash server without recovery
-}
-
-// With recovery middleware, client receives:
-// HTTP 500
-// {"type":"...internal","title":"Internal server error","traceId":"req_..."}
-```
-
 #### Graceful Shutdown
 
 | Aspect | Details |
@@ -147,23 +144,12 @@ func (h *Handler) DoSomething(w http.ResponseWriter, r *http.Request) {
 | **How it works** | Listens for SIGINT/SIGTERM signals. When received, stops accepting new connections, waits up to 30 seconds for existing requests to finish, then exits cleanly. |
 | **Location** | `cmd/api/main.go` |
 
-```go
-// Shutdown sequence
-quit := make(chan os.Signal, 1)
-signal.Notify(quit, syscall.SIGINT, syscall.SIGTERM)
-<-quit  // Block until signal received
-
-ctx, cancel := context.WithTimeout(context.Background(), 30*time.Second)
-defer cancel()
-
-server.Shutdown(ctx)  // Wait for in-flight requests
-```
-
 ### API Endpoints
 
 | Category | Endpoints | Purpose |
 |----------|-----------|---------|
 | **Ops** | `/v1/ops/health`, `/ready`, `/status` | Health monitoring and Kubernetes probes |
+| **Auth** | `/v1/auth/siwa`, `/refresh`, `/logout`, `/logout-all` | Authentication with Sign in with Apple |
 | **User** | `/v1/me`, `/v1/me/consents`, `/v1/me/profile` | User info and preferences |
 | **Commutes** | `/v1/me/commutes/*` | CRUD for saved commutes |
 | **Alerts** | `/v1/me/alerts/subscriptions/*` | Push notification subscriptions |
@@ -172,6 +158,7 @@ server.Shutdown(ctx)  // Wait for in-flight requests
 | **Alerts Preview** | `/v1/alerts/preview` | Departure time recommendations |
 | **GDPR** | `/v1/gdpr/export-requests/*`, `/v1/gdpr/deletion-requests/*` | Data portability and deletion |
 | **Metadata** | `/v1/metadata/enums`, `/v1/metadata/air-quality/stations` | Reference data |
+| **Admin** | `/v1/admin/feature-flags/*` | Feature flag management |
 
 ---
 
@@ -215,11 +202,6 @@ The observability stack uses OpenTelemetry for vendor-agnostic instrumentation. 
 }
 ```
 
-**Correlation**:
-- `request_id` - Links logs to a specific API request
-- `trace_id` - Links to distributed trace (same across services)
-- `span_id` - Links to specific span in trace
-
 #### Distributed Tracing
 
 | Aspect | Details |
@@ -227,47 +209,6 @@ The observability stack uses OpenTelemetry for vendor-agnostic instrumentation. 
 | **Purpose** | Track requests across multiple services and identify latency bottlenecks |
 | **How it works** | Creates a span for each HTTP request with W3C Trace Context propagation. Spans include HTTP semantic conventions and custom attributes. Child spans can be created for database calls, external API requests, etc. |
 | **Location** | `internal/api/middleware/tracing.go`, `internal/telemetry/telemetry.go` |
-
-**Trace Propagation**:
-```
-┌──────────────────────────────────────────────────────────────────┐
-│                        Trace: 0af765...                          │
-├──────────────────────────────────────────────────────────────────┤
-│                                                                  │
-│  ┌─────────────────────────────────────────────────────────────┐ │
-│  │ Span: API Request (45ms)                                    │ │
-│  │ POST /v1/routes:compute                                     │ │
-│  │                                                             │ │
-│  │  ┌────────────────────────────┐  ┌────────────────────────┐ │ │
-│  │  │ Span: DB Query (5ms)       │  │ Span: Air Quality (30ms)│ │
-│  │  │ SELECT FROM routes         │  │ GET luchtmeetnet.nl    │ │
-│  │  └────────────────────────────┘  └────────────────────────┘ │ │
-│  └─────────────────────────────────────────────────────────────┘ │
-│                                                                  │
-└──────────────────────────────────────────────────────────────────┘
-```
-
-**Span Attributes**:
-| Attribute | Description |
-|-----------|-------------|
-| `http.method` | GET, POST, etc. |
-| `http.url` | Full request URL |
-| `http.route` | URL path pattern |
-| `http.status_code` | Response status |
-| `http.response_size` | Response body size |
-| `request.id` | BreatheRoute request ID |
-| `error` | Set to true for 5xx responses |
-
-**Context Propagation**:
-```
-Incoming Request Headers:
-  traceparent: 00-0af7651916cd43dd8448eb211c80319c-b7ad6b7169203331-01
-                  └─────────────────┬────────────────────┘
-                              trace-id
-
-Outgoing Request Headers (to external services):
-  traceparent: 00-0af7651916cd43dd8448eb211c80319c-NEW_SPAN_ID-01
-```
 
 #### HTTP Metrics
 
@@ -286,85 +227,410 @@ Outgoing Request Headers (to external services):
 | `http.server.requests_in_flight` | UpDownCounter | method, route | Current load, capacity planning |
 | `http.server.response.size` | Histogram | method, route | Response size distribution |
 
-**Example Prometheus Queries**:
-```promql
-# Request rate by endpoint
-rate(http_server_request_total[5m])
+---
 
-# P99 latency
-histogram_quantile(0.99, rate(http_server_request_duration_bucket[5m]))
+## Authentication (Ticket 2008)
 
-# Error rate
-sum(rate(http_server_request_total{status_code=~"5.."}[5m]))
-  / sum(rate(http_server_request_total[5m]))
+**Status**: ✅ Complete
+**Purpose**: Secure API access using Sign in with Apple as the primary authentication method, with JWT access tokens and refresh token rotation.
 
-# Current load
-sum(http_server_requests_in_flight)
-```
+### Overview
 
-#### Provider Metrics
+Authentication uses Apple's identity tokens verified server-side. Upon successful verification, the API issues short-lived JWT access tokens (1 hour) and long-lived refresh tokens (30 days).
+
+### Features
+
+#### Sign in with Apple (SIWA)
 
 | Aspect | Details |
 |--------|---------|
-| **Purpose** | Monitor external API dependencies (Luchtmeetnet, NS API, etc.) |
-| **How it works** | Records latency and success/failure for each external call. Tracks cache hit/miss rates for data that's cached. |
-| **Location** | `internal/api/middleware/metrics.go` |
+| **Purpose** | Privacy-focused authentication without email/password |
+| **How it works** | iOS app obtains identity token from Apple. Backend verifies signature using Apple's public keys, validates claims, and creates/retrieves user. |
+| **Location** | `internal/auth/siwa.go` |
 
-**Metrics Collected**:
+**Flow**:
+```
+┌──────────────┐     Identity Token      ┌──────────────┐
+│   iOS App    │ ──────────────────────► │  API Server  │
+└──────────────┘                         └──────┬───────┘
+                                                │
+                                    ┌───────────▼───────────┐
+                                    │ 1. Fetch Apple JWKS   │
+                                    │ 2. Verify signature   │
+                                    │ 3. Validate claims    │
+                                    │ 4. Find/create user   │
+                                    │ 5. Issue tokens       │
+                                    └───────────────────────┘
+```
 
-| Metric | Type | Labels | Purpose |
-|--------|------|--------|---------|
-| `provider.request.duration` | Histogram | provider.name, provider.operation | External API latency |
-| `provider.request.total` | Counter | provider.name, provider.operation, error | External API reliability |
-| `provider.cache.hit` | Counter | provider.name, provider.operation | Cache effectiveness |
-| `provider.cache.miss` | Counter | provider.name, provider.operation | Cache misses |
+#### JWT Access Tokens
 
-**Usage Example**:
-```go
-pm, _ := middleware.NewProviderMetrics("luchtmeetnet")
+| Aspect | Details |
+|--------|---------|
+| **Purpose** | Stateless authentication for API requests |
+| **How it works** | HS256-signed tokens with 1-hour TTL. Contains user ID and issued-at time. Validated on every authenticated request. |
+| **Location** | `internal/auth/jwt.go` |
 
-// When making an external call
-start := time.Now()
-data, err := client.GetStations(ctx)
-pm.RecordRequest(ctx, "luchtmeetnet", "get-stations", time.Since(start), err)
+#### Refresh Token Rotation
 
-// When using cache
-if cached {
-    pm.RecordCacheHit("luchtmeetnet", "get-stations")
-} else {
-    pm.RecordCacheMiss("luchtmeetnet", "get-stations")
+| Aspect | Details |
+|--------|---------|
+| **Purpose** | Long-lived sessions with revocation capability |
+| **How it works** | Opaque tokens stored in database. When refreshed, old token is revoked and new token issued. Supports logout-all for security. |
+| **Location** | `internal/auth/service.go` |
+
+---
+
+## API Security Controls (Ticket 2013)
+
+**Status**: ✅ Complete
+**Purpose**: Protect public endpoints against abuse and accidental overload with rate limiting, security headers, and TLS enforcement.
+
+### Features
+
+#### Security Headers Middleware
+
+| Aspect | Details |
+|--------|---------|
+| **Purpose** | Protect against common web vulnerabilities |
+| **How it works** | Sets standard security headers on all responses |
+| **Location** | `internal/api/middleware/security.go` |
+
+**Headers Set**:
+| Header | Value | Purpose |
+|--------|-------|---------|
+| `X-Content-Type-Options` | `nosniff` | Prevent MIME sniffing |
+| `X-Frame-Options` | `DENY` | Prevent clickjacking |
+| `Strict-Transport-Security` | `max-age=31536000; includeSubDomains` | Force HTTPS |
+| `Content-Security-Policy` | `default-src 'none'` | Restrict resources |
+| `Referrer-Policy` | `strict-origin-when-cross-origin` | Control referrer |
+| `Permissions-Policy` | `geolocation=(), camera=(), microphone=()` | Disable features |
+
+#### Rate Limiting
+
+| Aspect | Details |
+|--------|---------|
+| **Purpose** | Prevent abuse and ensure fair usage |
+| **How it works** | In-memory rate limiting using go-chi/httprate. Per-IP for public endpoints, per-user for authenticated endpoints. |
+| **Location** | `internal/api/middleware/ratelimit.go` |
+
+**Rate Limit Tiers**:
+| Endpoint Category | Per-IP Limit | Per-User Limit |
+|-------------------|--------------|----------------|
+| Auth endpoints (`/auth/*`) | 10/min | - |
+| Expensive compute (`/routes:compute`) | 30/min | - |
+| Standard endpoints | 100/min | 100/min |
+
+**Response on Rate Limit**:
+```json
+{
+  "type": "https://api.breatheroute.com/problems/too-many-requests",
+  "title": "Too many requests",
+  "status": 429,
+  "detail": "Rate limit exceeded. Please retry after 60 seconds.",
+  "retryAfter": 60
 }
 ```
 
-#### OTLP Export
+#### TLS Enforcement
 
 | Aspect | Details |
 |--------|---------|
-| **Purpose** | Send telemetry data to observability backends |
-| **How it works** | Exports traces and metrics via gRPC to any OTLP-compatible collector. Batches data for efficiency. Configurable via environment variables. |
-| **Location** | `internal/telemetry/telemetry.go` |
+| **Purpose** | Ensure all traffic is encrypted |
+| **How it works** | Middleware checks `X-Forwarded-Proto` header (set by Cloud Run). Returns 421 if not HTTPS. Disabled for local development. |
+| **Location** | `internal/api/middleware/security.go` |
 
-**Configuration**:
-| Variable | Default | Description |
-|----------|---------|-------------|
-| `OTEL_ENABLED` | `false` | Enable OTLP export |
-| `OTEL_EXPORTER_OTLP_ENDPOINT` | `localhost:4317` | Collector address |
-| `APP_ENV` | `development` | Environment tag |
+---
 
-**Architecture**:
+## Air Quality Provider (Ticket 2021)
+
+**Status**: ✅ Complete
+**Purpose**: Integrate with Luchtmeetnet API to fetch real-time air quality measurements from Dutch monitoring stations.
+
+### Overview
+
+The air quality service fetches station data and measurements from Luchtmeetnet (RIVM's air quality monitoring network). Data is cached with TTL and supports stale-if-error for resilience.
+
+### Features
+
+#### Luchtmeetnet Client
+
+| Aspect | Details |
+|--------|---------|
+| **Purpose** | Fetch air quality data from official Dutch monitoring network |
+| **How it works** | HTTP client with circuit breaker protection. Fetches station list and current measurements. Maps API response to domain models. |
+| **Location** | `internal/airquality/luchtmeetnet/client.go` |
+
+**Data Fetched**:
+- Station metadata (ID, name, location, pollutants measured)
+- Current measurements (NO₂, PM2.5, PM10, O₃)
+- Measurement timestamps
+
+#### Air Quality Service
+
+| Aspect | Details |
+|--------|---------|
+| **Purpose** | Provide cached, resilient access to air quality data |
+| **How it works** | Wraps Luchtmeetnet client with TTL caching (5 min), stale-if-error (30 min), and snapshot generation for routing. |
+| **Location** | `internal/airquality/service.go` |
+
+**Snapshot Structure**:
+```go
+type Snapshot struct {
+    Stations    []Station    // All stations with latest readings
+    GeneratedAt time.Time    // When snapshot was created
+    TTL         time.Duration // Cache validity
+}
 ```
-┌────────────────────┐     gRPC     ┌─────────────────────┐
-│   BreatheRoute     │─────────────►│   OTLP Collector    │
-│   API Service      │              │  (e.g., OTel Agent) │
-└────────────────────┘              └──────────┬──────────┘
-                                               │
-                    ┌──────────────────────────┼──────────────────────────┐
-                    │                          │                          │
-                    ▼                          ▼                          ▼
-           ┌─────────────────┐       ┌─────────────────┐       ┌─────────────────┐
-           │  Jaeger/Tempo   │       │   Prometheus    │       │    Grafana      │
-           │   (Tracing)     │       │   (Metrics)     │       │  (Dashboards)   │
-           └─────────────────┘       └─────────────────┘       └─────────────────┘
+
+---
+
+## Weather Provider (Ticket 2022)
+
+**Status**: ✅ Complete
+**Purpose**: Integrate with OpenWeatherMap to provide current weather conditions that affect commute comfort and exposure.
+
+### Features
+
+#### OpenWeatherMap Client
+
+| Aspect | Details |
+|--------|---------|
+| **Purpose** | Fetch current weather for route endpoints |
+| **How it works** | Uses resilient HTTP client with circuit breaker. Fetches temperature, humidity, wind, and weather conditions. |
+| **Location** | `internal/weather/openweathermap/client.go` |
+
+**Data Fetched**:
+- Temperature (°C)
+- Humidity (%)
+- Wind speed and direction
+- Weather conditions (rain, clear, etc.)
+
+#### Weather Service
+
+| Aspect | Details |
+|--------|---------|
+| **Purpose** | Provide cached weather data for routes |
+| **How it works** | 5-minute TTL caching with stale-if-error. Weather affects exposure scoring (rain reduces PM dispersion, etc.). |
+| **Location** | `internal/weather/service.go` |
+
+---
+
+## Pollen Provider (Ticket 2023)
+
+**Status**: ✅ Complete
+**Purpose**: Integrate with Ambee API to provide pollen forecasts for users with allergies.
+
+### Features
+
+#### Ambee Pollen Client
+
+| Aspect | Details |
+|--------|---------|
+| **Purpose** | Fetch pollen levels and forecasts |
+| **How it works** | Resilient HTTP client fetching regional pollen data. Maps Ambee risk levels to domain risk categories. |
+| **Location** | `internal/pollen/ambee/client.go` |
+
+**Data Fetched**:
+- Tree pollen levels
+- Grass pollen levels
+- Weed pollen levels
+- Overall risk level (LOW, MEDIUM, HIGH, VERY_HIGH)
+
+#### Feature Flag Control
+
+| Aspect | Details |
+|--------|---------|
+| **Purpose** | Disable pollen feature without deployment |
+| **How it works** | `disable_pollen` feature flag controls whether pollen data is fetched. When disabled, pollen weight is redistributed to other factors. |
+| **Location** | `internal/pollen/service.go` |
+
+---
+
+## Transit Provider (Ticket 2024)
+
+**Status**: ✅ Complete
+**Purpose**: Integrate with NS API to provide train disruption information affecting commutes.
+
+### Features
+
+#### NS API Client
+
+| Aspect | Details |
+|--------|---------|
+| **Purpose** | Fetch current train disruptions and station info |
+| **How it works** | Resilient HTTP client calling NS disruption and station endpoints. Maps Dutch/English disruption types to domain models. Generates advisory messages based on severity. |
+| **Location** | `internal/transit/ns/client.go` |
+
+**Disruption Types**:
+| Type | Impact | Description |
+|------|--------|-------------|
+| `MAINTENANCE` | MINOR | Planned maintenance work |
+| `DISRUPTION` | MAJOR | Unplanned service disruption |
+| `CALAMITY` | SEVERE | Major incident |
+
+#### Transit Service
+
+| Aspect | Details |
+|--------|---------|
+| **Purpose** | Provide cached disruption data |
+| **How it works** | 5-minute TTL caching. Supports route-specific disruption queries. Feature flag `disable_transit` for emergency disable. |
+| **Location** | `internal/transit/service.go` |
+
+**Advisory Messages**:
+```
+MINOR:  "Minor delays possible. Allow extra time."
+MAJOR:  "Consider alternative transport options."
+SEVERE: "Service suspended. Use alternative transport."
+```
+
+---
+
+## Provider Resilience (Ticket 2025)
+
+**Status**: ✅ Complete
+**Purpose**: Protect against external API failures with circuit breakers, retry logic, and health monitoring.
+
+### Features
+
+#### Circuit Breaker
+
+| Aspect | Details |
+|--------|---------|
+| **Purpose** | Fail fast when external services are down |
+| **How it works** | Opens after 50% failure rate (minimum 5 requests). Half-open state allows probe requests. Automatically closes after success. |
+| **Location** | `internal/provider/resilience/circuit_breaker.go` |
+
+**States**:
+```
+                  success
+    ┌──────────────────────────────┐
+    │                              │
+    ▼                              │
+┌────────┐   failure   ┌────────┐  │   ┌────────────┐
+│ CLOSED │────────────►│  OPEN  │──┴──►│ HALF-OPEN  │
+└────────┘  threshold  └────────┘      └────────────┘
+    ▲                      │ timeout       │
+    │                      ▼               │
+    │                  probe request       │
+    │                      │               │
+    └──────────────────────┴───────────────┘
+                 success
+```
+
+#### Exponential Backoff Retry
+
+| Aspect | Details |
+|--------|---------|
+| **Purpose** | Retry transient failures with increasing delays |
+| **How it works** | Retries 5xx and network errors. Initial delay 100ms, max 5s. Maximum 3 attempts. Uses cenkalti/backoff. |
+| **Location** | `internal/provider/resilience/client.go` |
+
+#### Provider Health Registry
+
+| Aspect | Details |
+|--------|---------|
+| **Purpose** | Track and expose provider health status |
+| **How it works** | Central registry tracks circuit breaker state, last success/failure times, and error messages. Exposed via `/v1/ops/status` endpoint. |
+| **Location** | `internal/provider/resilience/registry.go` |
+
+**System Status Response**:
+```json
+{
+  "status": "ok",
+  "providers": [
+    {
+      "provider": "luchtmeetnet",
+      "status": "ok",
+      "lastSuccessAt": "2024-01-15T12:00:00Z"
+    },
+    {
+      "provider": "ns-api",
+      "status": "degraded",
+      "lastFailureAt": "2024-01-15T11:55:00Z",
+      "message": "connection timeout"
+    }
+  ]
+}
+```
+
+---
+
+## Background Refresh Job (Ticket 2026)
+
+**Status**: ✅ Complete
+**Purpose**: Keep provider caches warm by proactively refreshing data for major Dutch cities.
+
+### Overview
+
+A background worker process refreshes air quality, weather, pollen, and transit data on a schedule. This ensures low-latency responses for users in the Randstad metropolitan area.
+
+### Features
+
+#### Refresh Configuration
+
+| Aspect | Details |
+|--------|---------|
+| **Purpose** | Define which locations to pre-cache |
+| **How it works** | Configurable list of cities with priority levels. Each city has multiple points (e.g., city center, train station). |
+| **Location** | `internal/worker/config.go` |
+
+**Default Targets**:
+| City | Priority | Points |
+|------|----------|--------|
+| Amsterdam | 1 | Centraal, Zuid, Zuidoost, Noord |
+| Rotterdam | 1 | Centraal, Zuid, West |
+| Den Haag | 1 | Centraal, HS, Scheveningen |
+| Utrecht | 1 | Centraal, Science Park |
+| Eindhoven | 2 | Centraal, High Tech Campus |
+| Schiphol | 2 | Airport |
+| Leiden, Haarlem, Delft, Amersfoort | 3 | Centraal |
+
+#### Concurrent Processing
+
+| Aspect | Details |
+|--------|---------|
+| **Purpose** | Refresh all points efficiently |
+| **How it works** | Worker pool with configurable concurrency (default: 3). Points processed in priority order. Per-point timeout prevents blocking. |
+| **Location** | `internal/worker/refresh.go` |
+
+#### Pub/Sub Integration
+
+| Aspect | Details |
+|--------|---------|
+| **Purpose** | Trigger refresh jobs via Cloud Scheduler |
+| **How it works** | Worker subscribes to Pub/Sub topic. Scheduler publishes refresh messages on schedule. Supports health check messages. |
+| **Location** | `internal/worker/pubsub.go` |
+
+**Message Types**:
+| Job Type | Purpose |
+|----------|---------|
+| `provider_refresh` | Full refresh of all configured points |
+| `health_check` | Single-point refresh to verify connectivity |
+
+#### Refresh Metrics
+
+| Aspect | Details |
+|--------|---------|
+| **Purpose** | Monitor refresh job performance |
+| **How it works** | Tracks total refreshes, success/failure counts, duration, cache hits/misses, and per-provider statistics. |
+| **Location** | `internal/worker/refresh.go` |
+
+**Metrics Available**:
+```json
+{
+  "total_refreshes": 100,
+  "successful_refreshes": 95,
+  "failed_refreshes": 5,
+  "airquality_refreshes": 100,
+  "weather_refreshes": 100,
+  "pollen_refreshes": 98,
+  "transit_refreshes": 50,
+  "last_refresh_at": "2024-01-15T12:00:00Z",
+  "last_refresh_duration": "5.2s",
+  "cache_hits": 50,
+  "cache_misses": 150
+}
 ```
 
 ---
@@ -375,11 +641,8 @@ Features in the backlog that are not yet implemented:
 
 | Ticket | Feature | Description |
 |--------|---------|-------------|
-| 2008 | Authentication | JWT-based auth with Sign in with Apple |
-| 2009 | Air Quality Provider | Integration with Luchtmeetnet API |
 | 2011 | Route Engine | Multi-modal route calculation with exposure scoring |
 | 2012 | Push Notifications | APNs integration for departure alerts |
-| 2013 | Caching Layer | Redis caching for air quality and route data |
 | 2014 | Database Layer | PostgreSQL with PostGIS for spatial queries |
 
 ---
@@ -391,8 +654,15 @@ All features include comprehensive test coverage:
 | Package | Tests | Coverage |
 |---------|-------|----------|
 | `internal/api` | 22 | Router integration tests |
-| `internal/api/middleware` | 23 | Middleware unit tests |
+| `internal/api/middleware` | 35+ | Middleware unit tests |
 | `internal/api/models` | 12 | Model and Problem tests |
+| `internal/auth` | 20+ | Auth service and SIWA tests |
+| `internal/airquality` | 15+ | Air quality service tests |
+| `internal/weather` | 10+ | Weather service tests |
+| `internal/pollen` | 10+ | Pollen service tests |
+| `internal/transit` | 12+ | Transit service tests |
+| `internal/provider/resilience` | 15+ | Circuit breaker and client tests |
+| `internal/worker` | 18 | Refresh job tests |
 | `internal/telemetry` | 4 | Telemetry initialization tests |
 
 Run tests with:
@@ -408,19 +678,21 @@ go test ./... -cover
 | File | Purpose |
 |------|---------|
 | `cmd/api/main.go` | API server entrypoint with telemetry init |
+| `cmd/worker/main.go` | Worker service entrypoint |
 | `internal/api/router.go` | Chi router configuration |
-| `internal/api/middleware/request_id.go` | Request ID generation |
-| `internal/api/middleware/logging.go` | Structured logging |
-| `internal/api/middleware/tracing.go` | Distributed tracing spans |
-| `internal/api/middleware/metrics.go` | HTTP and provider metrics |
-| `internal/api/middleware/recovery.go` | Panic recovery |
-| `internal/api/middleware/content_type.go` | JSON content type |
-| `internal/api/models/problem.go` | RFC 7807 Problem responses |
-| `internal/api/models/*.go` | Request/response models |
+| `internal/api/middleware/*.go` | Request processing middleware |
 | `internal/api/handler/*.go` | HTTP handlers |
-| `internal/api/response/response.go` | Response helpers |
-| `internal/telemetry/telemetry.go` | OpenTelemetry initialization |
+| `internal/api/models/*.go` | Request/response models |
+| `internal/auth/*.go` | Authentication services |
+| `internal/airquality/*.go` | Air quality service |
+| `internal/weather/*.go` | Weather service |
+| `internal/pollen/*.go` | Pollen service |
+| `internal/transit/*.go` | Transit service |
+| `internal/provider/resilience/*.go` | Resilient HTTP client |
+| `internal/worker/*.go` | Background job processing |
+| `internal/featureflags/*.go` | Feature flag management |
+| `internal/telemetry/*.go` | OpenTelemetry initialization |
 
 ---
 
-*Last updated: January 2024*
+*Last updated: January 2026*
