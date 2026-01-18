@@ -18,6 +18,9 @@ import (
 	"github.com/breatheroute/breatheroute/internal/database"
 	"github.com/breatheroute/breatheroute/internal/device"
 	"github.com/breatheroute/breatheroute/internal/featureflags"
+	"github.com/breatheroute/breatheroute/internal/provider/resilience"
+	"github.com/breatheroute/breatheroute/internal/routing"
+	"github.com/breatheroute/breatheroute/internal/routing/openrouteservice"
 	"github.com/breatheroute/breatheroute/internal/telemetry"
 	"github.com/breatheroute/breatheroute/internal/user"
 )
@@ -167,6 +170,30 @@ func main() {
 	})
 	log.Info().Msg("feature flags service initialized")
 
+	// Initialize provider registry for health tracking
+	providerRegistry := resilience.GlobalRegistry
+
+	// Initialize routing provider (OpenRouteService)
+	orsAPIKey := os.Getenv("OPENROUTESERVICE_API_KEY")
+	if orsAPIKey == "" {
+		log.Warn().Msg("OPENROUTESERVICE_API_KEY not set - routing will fail")
+	}
+
+	orsClient := openrouteservice.NewClient(openrouteservice.ClientConfig{
+		APIKey:   orsAPIKey,
+		Registry: providerRegistry,
+		Logger:   log,
+	})
+	log.Info().Msg("OpenRouteService client initialized")
+
+	// Initialize routing service with caching
+	routingService := routing.NewService(routing.ServiceConfig{
+		Provider: orsClient,
+		Logger:   log,
+		// Using defaults: 5min cache TTL, 15min stale-if-error, 0.01° grid
+	})
+	log.Info().Msg("routing service initialized")
+
 	// Check for development mode (enables /auth/dev endpoint)
 	devMode := os.Getenv("AUTH_DEV_MODE") == "true"
 	if devMode {
@@ -185,6 +212,8 @@ func main() {
 		FeatureFlagService: ffService,
 		CommuteService:     commuteService,
 		DeviceService:      deviceService,
+		RoutingService:     routingService,
+		ProviderRegistry:   providerRegistry,
 		DevMode:            devMode,
 	})
 

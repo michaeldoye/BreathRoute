@@ -28,7 +28,17 @@ output "pollen_api_key_secret_id" {
   value       = google_secret_manager_secret.pollen_api_key.secret_id
 }
 
+output "weather_api_key_secret_id" {
+  description = "Weather API key secret ID"
+  value       = google_secret_manager_secret.weather_api_key.secret_id
+}
+
 output "webhook_signing_secret_id" {
   description = "Webhook signing secret ID"
   value       = google_secret_manager_secret.webhook_signing_secret.secret_id
+}
+
+output "openrouteservice_api_key_secret_id" {
+  description = "OpenRouteService API key secret ID"
+  value       = google_secret_manager_secret.openrouteservice_api_key.secret_id
 }

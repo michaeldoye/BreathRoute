@@ -13,6 +13,7 @@ import (
 	"github.com/breatheroute/breatheroute/internal/device"
 	"github.com/breatheroute/breatheroute/internal/featureflags"
 	"github.com/breatheroute/breatheroute/internal/provider/resilience"
+	"github.com/breatheroute/breatheroute/internal/routing"
 	"github.com/breatheroute/breatheroute/internal/user"
 )
 
@@ -28,6 +29,7 @@ type RouterConfig struct {
 	FeatureFlagService *featureflags.Service
 	CommuteService     *commute.Service
 	DeviceService      *device.Service
+	RoutingService     *routing.Service
 	ProviderRegistry   *resilience.Registry
 	// DevMode enables development-only endpoints (e.g., /auth/dev).
 	// Should never be true in production.
@@ -64,7 +66,7 @@ func NewRouter(cfg RouterConfig) *chi.Mux {
 	meHandler := handler.NewMeHandler(cfg.UserService)
 	profileHandler := handler.NewProfileHandler(cfg.UserService)
 	commuteHandler := handler.NewCommuteHandler(cfg.CommuteService)
-	routeHandler := handler.NewRouteHandler()
+	routeHandler := handler.NewRouteHandler(cfg.RoutingService, cfg.Logger)
 	alertHandler := handler.NewAlertHandler()
 	deviceHandler := handler.NewDeviceHandler(cfg.DeviceService)
 	gdprHandler := handler.NewGDPRHandler()

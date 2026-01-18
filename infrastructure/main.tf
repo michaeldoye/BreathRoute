@@ -232,6 +232,22 @@ module "cloud_run_api" {
       secret_id = module.secrets.jwt_signing_key_secret_id
       version   = "latest"
     }
+    NS_API_KEY = {
+      secret_id = module.secrets.ns_api_key_secret_id
+      version   = "latest"
+    }
+    POLLEN_API_KEY = {
+      secret_id = module.secrets.pollen_api_key_secret_id
+      version   = "latest"
+    }
+    WEATHER_API_KEY = {
+      secret_id = module.secrets.weather_api_key_secret_id
+      version   = "latest"
+    }
+    OPENROUTESERVICE_API_KEY = {
+      secret_id = module.secrets.openrouteservice_api_key_secret_id
+      version   = "latest"
+    }
   }
 
   # Allow unauthenticated access (public API)
@@ -279,6 +295,22 @@ module "cloud_run_worker" {
     }
     APNS_KEY = {
       secret_id = module.secrets.apns_key_secret_id
+      version   = "latest"
+    }
+    NS_API_KEY = {
+      secret_id = module.secrets.ns_api_key_secret_id
+      version   = "latest"
+    }
+    POLLEN_API_KEY = {
+      secret_id = module.secrets.pollen_api_key_secret_id
+      version   = "latest"
+    }
+    WEATHER_API_KEY = {
+      secret_id = module.secrets.weather_api_key_secret_id
+      version   = "latest"
+    }
+    OPENROUTESERVICE_API_KEY = {
+      secret_id = module.secrets.openrouteservice_api_key_secret_id
       version   = "latest"
     }
   }

@@ -20,6 +20,7 @@ import (
 	"github.com/breatheroute/breatheroute/internal/commute"
 	"github.com/breatheroute/breatheroute/internal/device"
 	"github.com/breatheroute/breatheroute/internal/provider/resilience"
+	"github.com/breatheroute/breatheroute/internal/routing"
 	"github.com/breatheroute/breatheroute/internal/user"
 )
 
@@ -96,12 +97,51 @@ func testDeviceService() *device.Service {
 func testProviderRegistry() *resilience.Registry {
 	registry := resilience.NewRegistry()
 	// Register test providers
-	for _, name := range []string{"luchtmeetnet", "ns", "openweathermap", "ambee"} {
+	for _, name := range []string{"luchtmeetnet", "ns", "openweathermap", "ambee", "openrouteservice"} {
 		cfg := resilience.DefaultClientConfig(name)
 		cfg.Registry = registry
 		_ = resilience.NewClient(cfg)
 	}
 	return registry
+}
+
+// mockRoutingProvider is a mock routing provider for testing.
+type mockRoutingProvider struct{}
+
+func (m *mockRoutingProvider) GetDirections(ctx context.Context, req routing.DirectionsRequest) (*routing.DirectionsResponse, error) {
+	return &routing.DirectionsResponse{
+		Routes: []routing.Route{
+			{
+				GeometryPolyline: "_p~iF~ps|U_ulLnnqC",
+				DistanceMeters:   5000,
+				DurationSeconds:  1200,
+				Summary:          "Main Street",
+			},
+			{
+				GeometryPolyline: "_p~iF~ps|U_glLnoqC",
+				DistanceMeters:   5500,
+				DurationSeconds:  1350,
+				Summary:          "Park Route",
+			},
+		},
+		Provider:  "test-provider",
+		FetchedAt: time.Now(),
+	}, nil
+}
+
+func (m *mockRoutingProvider) Name() string {
+	return "test-provider"
+}
+
+func (m *mockRoutingProvider) SupportedProfiles() []routing.RouteProfile {
+	return []routing.RouteProfile{routing.ProfileBike, routing.ProfileWalk}
+}
+
+func testRoutingService() *routing.Service {
+	return routing.NewService(routing.ServiceConfig{
+		Provider: &mockRoutingProvider{},
+		Logger:   zerolog.New(io.Discard),
+	})
 }
 
 func newTestRouter() http.Handler {
@@ -114,6 +154,7 @@ func newTestRouter() http.Handler {
 		UserService:      testUserService(),
 		CommuteService:   testCommuteService(),
 		DeviceService:    testDeviceService(),
+		RoutingService:   testRoutingService(),
 		ProviderRegistry: testProviderRegistry(),
 	})
 }
