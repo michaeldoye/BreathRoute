@@ -19,6 +19,7 @@ import (
 	"github.com/breatheroute/breatheroute/internal/auth"
 	"github.com/breatheroute/breatheroute/internal/commute"
 	"github.com/breatheroute/breatheroute/internal/device"
+	"github.com/breatheroute/breatheroute/internal/provider/resilience"
 	"github.com/breatheroute/breatheroute/internal/user"
 )
 
@@ -92,16 +93,28 @@ func testDeviceService() *device.Service {
 	return device.NewService(repo)
 }
 
+func testProviderRegistry() *resilience.Registry {
+	registry := resilience.NewRegistry()
+	// Register test providers
+	for _, name := range []string{"luchtmeetnet", "ns", "openweathermap", "ambee"} {
+		cfg := resilience.DefaultClientConfig(name)
+		cfg.Registry = registry
+		_ = resilience.NewClient(cfg)
+	}
+	return registry
+}
+
 func newTestRouter() http.Handler {
 	logger := zerolog.New(io.Discard)
 	return api.NewRouter(api.RouterConfig{
-		Version:        "test",
-		BuildTime:      "2024-01-01T00:00:00Z",
-		Logger:         logger,
-		AuthService:    testAuthService(),
-		UserService:    testUserService(),
-		CommuteService: testCommuteService(),
-		DeviceService:  testDeviceService(),
+		Version:          "test",
+		BuildTime:        "2024-01-01T00:00:00Z",
+		Logger:           logger,
+		AuthService:      testAuthService(),
+		UserService:      testUserService(),
+		CommuteService:   testCommuteService(),
+		DeviceService:    testDeviceService(),
+		ProviderRegistry: testProviderRegistry(),
 	})
 }
 
